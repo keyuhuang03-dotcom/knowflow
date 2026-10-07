@@ -34,6 +34,15 @@ export function parseAnalysis(value: unknown): Analysis {
   const raw = record(value);
   return Object.fromEntries([["version", 1], ["origin", raw.origin === "ai" ? "ai" : "manual"], ...analysisFields.map(([key, label]) => [key, text(raw[key], label)])]) as Analysis;
 }
+/** A question photo alone cannot establish why this particular student was wrong. */
+export function requireStudentWorkEvidence(analysis: Analysis, hasStudentWork: boolean): Analysis {
+  if (hasStudentWork) return analysis;
+  return {
+    ...analysis,
+    stickingPoint: "缺少解题过程，无法定位个人卡点，待补充。",
+    errorReason: "缺少解题过程，无法判断错误原因，待补充。",
+  };
+}
 export function readAnalysis(value: string | null): Analysis {
   if (!value) return { ...emptyAnalysis };
   try {

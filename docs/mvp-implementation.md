@@ -43,7 +43,7 @@ MISTAKE_AI_MODEL=""
 
 ## Mistake Learning Skill 接口
 
-`src/lib/mistake-ai.ts` 的 `analyzeUploadedMistake` 是适配器边界；`src/lib/mistake-contract.ts` 是前后端共用契约。目前没有执行本地 Skill、运行其脚本或写其数据。
+`src/lib/mistake-ai.ts` 的 `analyzeUploadedMistake` 是适配器边界；`src/lib/mistake-contract.ts` 是前后端共用契约。第一步已把 Mistake Learning Skill 的逐步诊断准则用于模型提示：先核对题目条件，再与学生过程对照，要求错因有具体步骤证据，并区分最早卡点与连带结果。缺少解题过程时，服务端强制将个人卡点和错因标为待补充。当前仍未执行本地 Skill 脚本或写其独立数据目录。
 
 输入：`imageUrl`、`userWorkImageUrl`、`userWork`、`source`、`subject`、`textbook`、`candidates[{id,name,path}]`。
 
@@ -64,7 +64,7 @@ MISTAKE_AI_MODEL=""
 }
 ```
 
-接入 Skill 时，在服务端适配器中把其识别、诊断和复习提示映射到以上结构，继续通过输出校验。Skill 的独立 schema 与本应用不直接等价，不能原封不动写入。不得自动运行 Skill 的节点创建/掌握度变更能力。候选过滤只允许本次当前科目目录内的 ID，去重且最多三个；无法判断可返回空列表。用户勾选后，保存端再次验证科目、节点存在性和显式确认。
+本阶段沿用现有简化输出结构，模型实际诊断质量仍取决于所配置的视觉模型，需要用真实错题人工核对。Skill 的独立 schema 与本应用不直接等价，不能原封不动写入。不得自动运行 Skill 的节点创建/掌握度变更能力。候选过滤只允许本次当前科目目录内的 ID，去重且最多三个；无法判断可返回空列表。用户勾选后，保存端再次验证科目、节点存在性和显式确认。
 
 ## 数据与恢复
 
