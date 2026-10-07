@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     const type = image || "application/octet-stream";
     const filename = `${randomUUID()}.${ext}`;
     await mkdir(uploadRoot(), { recursive: true });
-    await writeFile(path.join(process.cwd(), "public", "uploads", filename), buffer, { flag: "wx" });
+    await writeFile(path.join(uploadRoot(), filename), buffer, { flag: "wx" });
     return NextResponse.json({ url: `/uploads/${filename}`, name: file.name, type, size: file.size });
   } catch { return NextResponse.json({ error: "上传失败，请重新选择图片" }, { status: 500 }); }
 }
