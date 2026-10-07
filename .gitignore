@@ -60,6 +60,11 @@ app/data/mistake-skill/
 *.db-wal
 *.db-shm
 
+# Cloud deployment secrets and persistent data
+/deploy/app.env
+/deploy/Caddyfile
+/data/
+
 # temporary Office files
 ~$*
 
