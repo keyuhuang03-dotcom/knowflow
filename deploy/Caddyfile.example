@@ -1,0 +1,8 @@
+# Replace this domain with a DNS name pointing at the server.
+study.example.com {
+    encode zstd gzip
+    basic_auth {
+        learner REPLACE_WITH_CADDY_BCRYPT_HASH
+    }
+    reverse_proxy web:3000
+}
