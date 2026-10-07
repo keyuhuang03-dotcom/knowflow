@@ -1,0 +1,807 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "analytics-profile",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "2.0"
+      ]
+    },
+    "analytics_version": {
+      "type": "string"
+    },
+    "as_of": {
+      "type": "string"
+    },
+    "timezone": {
+      "type": "string"
+    },
+    "window": {
+      "enum": [
+        "7d",
+        "14d",
+        "30d",
+        "all",
+        "weekly",
+        "monthly"
+      ]
+    },
+    "start": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "end_exclusive": {
+      "type": "string"
+    },
+    "interpretation": {
+      "type": "string"
+    },
+    "evidence_coverage": {
+      "type": "object",
+      "properties": {
+        "attempt_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observed_node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "assessable_node_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "unresolved_binding_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "reliable_observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "observation_count": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "curriculum_coverage": {
+          "type": "null"
+        },
+        "caveat": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "attempt_count",
+        "observed_node_count",
+        "assessable_node_count",
+        "unresolved_binding_count",
+        "reliable_observation_count",
+        "observation_count",
+        "curriculum_coverage",
+        "caveat"
+      ],
+      "additionalProperties": false
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "weakness": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "enum": [
+                  "insufficient_evidence",
+                  "emerging_weakness",
+                  "weak",
+                  "persistent_weakness",
+                  "stable",
+                  "uncertain"
+                ]
+              },
+              "confidence": {
+                "enum": [
+                  "low",
+                  "moderate"
+                ]
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "supporting_mistakes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "evidence_key": {
+                      "type": "string"
+                    },
+                    "mistake_id": {
+                      "type": "string"
+                    },
+                    "canonical_node_id": {
+                      "type": "string"
+                    },
+                    "fact_file": {
+                      "type": "string"
+                    },
+                    "diagnosis_card": {
+                      "type": "string"
+                    },
+                    "step_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "revision_files": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "evidence_key",
+                    "mistake_id",
+                    "canonical_node_id",
+                    "fact_file",
+                    "diagnosis_card",
+                    "step_ids",
+                    "revision_files"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "evidence_coverage": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              },
+              "understanding_counts": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "evidence_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "reliable_evidence_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "exposure_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "wrong_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "partial_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "correct_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "independent_success_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "hint_required_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "repeated_error_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "recent_wrong_count": {
+                "type": "integer",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "status",
+              "confidence",
+              "reasons",
+              "supporting_mistakes",
+              "evidence",
+              "evidence_coverage",
+              "understanding_counts",
+              "evidence_count",
+              "reliable_evidence_count",
+              "exposure_count",
+              "wrong_count",
+              "partial_count",
+              "correct_count",
+              "independent_success_count",
+              "hint_required_count",
+              "repeated_error_count",
+              "recent_wrong_count"
+            ],
+            "additionalProperties": false
+          },
+          "repeated_error": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "enum": [
+                  "repeated",
+                  "not_established"
+                ]
+              },
+              "distinct_attempt_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "failure_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "time_span_days": {
+                "type": "number"
+              },
+              "recent_14d_failure_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "success_between_errors": {
+                "type": "boolean"
+              },
+              "repeated_misconception_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "same_error_types": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "error_type": {
+                      "type": "string"
+                    },
+                    "count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "supporting_mistakes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "error_type",
+                    "count",
+                    "supporting_mistakes"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "supporting_mistakes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "evidence_key": {
+                      "type": "string"
+                    },
+                    "mistake_id": {
+                      "type": "string"
+                    },
+                    "canonical_node_id": {
+                      "type": "string"
+                    },
+                    "fact_file": {
+                      "type": "string"
+                    },
+                    "diagnosis_card": {
+                      "type": "string"
+                    },
+                    "step_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "revision_files": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "evidence_key",
+                    "mistake_id",
+                    "canonical_node_id",
+                    "fact_file",
+                    "diagnosis_card",
+                    "step_ids",
+                    "revision_files"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "status",
+              "distinct_attempt_count",
+              "failure_count",
+              "time_span_days",
+              "recent_14d_failure_count",
+              "success_between_errors",
+              "repeated_misconception_count",
+              "same_error_types",
+              "reasons",
+              "supporting_mistakes",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "trend": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "enum": [
+                  "insufficient_evidence",
+                  "improving",
+                  "stable",
+                  "fluctuating",
+                  "declining"
+                ]
+              },
+              "evidence_count": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "window_scores": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "earlier": {
+                        "type": "number"
+                      },
+                      "later": {
+                        "type": "number"
+                      },
+                      "delta": {
+                        "type": "number"
+                      }
+                    },
+                    "required": [
+                      "earlier",
+                      "later",
+                      "delta"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "supporting_mistakes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "evidence_key": {
+                      "type": "string"
+                    },
+                    "mistake_id": {
+                      "type": "string"
+                    },
+                    "canonical_node_id": {
+                      "type": "string"
+                    },
+                    "fact_file": {
+                      "type": "string"
+                    },
+                    "diagnosis_card": {
+                      "type": "string"
+                    },
+                    "step_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "revision_files": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "required": [
+                    "evidence_key",
+                    "mistake_id",
+                    "canonical_node_id",
+                    "fact_file",
+                    "diagnosis_card",
+                    "step_ids",
+                    "revision_files"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "status",
+              "evidence_count",
+              "window_scores",
+              "reasons",
+              "supporting_mistakes",
+              "evidence"
+            ],
+            "additionalProperties": false
+          },
+          "illusion_of_mastery": {
+            "type": "object",
+            "properties": {
+              "status": {
+                "enum": [
+                  "candidate",
+                  "not_established"
+                ]
+              },
+              "patterns": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "pattern": {
+                      "enum": [
+                        "A",
+                        "B",
+                        "C",
+                        "D"
+                      ]
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "evidence_count": {
+                      "type": "integer",
+                      "minimum": 0
+                    },
+                    "reasons": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "supporting_mistakes": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "evidence": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "evidence_key": {
+                            "type": "string"
+                          },
+                          "mistake_id": {
+                            "type": "string"
+                          },
+                          "canonical_node_id": {
+                            "type": "string"
+                          },
+                          "fact_file": {
+                            "type": "string"
+                          },
+                          "diagnosis_card": {
+                            "type": "string"
+                          },
+                          "step_ids": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          },
+                          "revision_files": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            }
+                          }
+                        },
+                        "required": [
+                          "evidence_key",
+                          "mistake_id",
+                          "canonical_node_id",
+                          "fact_file",
+                          "diagnosis_card",
+                          "step_ids",
+                          "revision_files"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": [
+                    "pattern",
+                    "label",
+                    "evidence_count",
+                    "reasons",
+                    "supporting_mistakes",
+                    "evidence"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "pattern_e": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "insufficient_evidence"
+                    ]
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "status",
+                  "reason"
+                ],
+                "additionalProperties": false
+              },
+              "supporting_mistakes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "status",
+              "patterns",
+              "pattern_e",
+              "supporting_mistakes"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "node_id",
+          "name",
+          "path",
+          "weakness",
+          "repeated_error",
+          "trend",
+          "illusion_of_mastery"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "weak_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "persistent_weaknesses": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "repeated_errors": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "improving_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "declining_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "illusion_of_mastery_candidates": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "insufficient_evidence_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supporting_mistakes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "unresolved_bindings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "error_profile": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "enum": [
+              "overall",
+              "subject",
+              "chapter",
+              "node"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "error_type": {
+            "type": "string"
+          },
+          "attempt_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "supporting_mistakes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "scope",
+          "key",
+          "error_type",
+          "attempt_count",
+          "supporting_mistakes",
+          "steps"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "diagnosis_quality_summary": {
+      "type": "object"
+    },
+    "period": {
+      "enum": [
+        "weekly",
+        "monthly"
+      ]
+    },
+    "state_changes": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "diagnosis_revisions": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "new_wrong_attempt_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "new_weak_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "cumulative_improving_nodes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "analytics_version",
+    "as_of",
+    "timezone",
+    "window",
+    "start",
+    "end_exclusive",
+    "interpretation",
+    "evidence_coverage",
+    "nodes",
+    "weak_nodes",
+    "persistent_weaknesses",
+    "repeated_errors",
+    "improving_nodes",
+    "declining_nodes",
+    "illusion_of_mastery_candidates",
+    "insufficient_evidence_nodes",
+    "supporting_mistakes",
+    "unresolved_bindings",
+    "error_profile",
+    "diagnosis_quality_summary"
+  ],
+  "additionalProperties": false
+}

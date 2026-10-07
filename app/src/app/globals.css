@@ -282,3 +282,7 @@ body {
   .wb-header { align-items: flex-start; flex-direction: column; margin: 20px 0 24px; gap: 16px; }.wb-panel { padding: 18px; }.wb-subject-grid,.wb-two-columns,.wb-columns > aside { grid-template-columns: minmax(0, 1fr); }.wb-subject { min-height: 250px; padding: 22px 22px 0; }.wb-counts { gap: 8px; }.wb-counts button { padding: 12px; gap: 6px; flex-direction: column; font-size: 12px; }.wb-steps { gap: 13px; }.wb-steps > span { font-size: 11px; gap: 5px; }.wb-steps b { width: 23px; height: 23px; }.wb-between { flex-wrap: wrap; }.wb-node-row { padding: 14px 12px; }.wb-panel .wb-tabs { gap: 16px; }.wb-bottom-actions { flex-wrap: wrap; }.wb-bottom-actions .btn { flex: 1; }.wb-footnote { align-items: flex-start; }
 }
 @media(prefers-reduced-motion: reduce) { *,*::before,*::after { animation: none !important; transition: none !important; } }
+
+.wb-skill-evidence { border-left: 3px solid #8b9a79; padding: .5rem .8rem; background: #f7f9f4; border-radius: .4rem; }
+.wb-skill-evidence p { margin: .35rem 0 0; }
+.wb-skill-raw { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; font: inherit; font-size: .84rem; line-height: 1.6; padding: 1rem; background: #f7f8f6; border-radius: .6rem; }

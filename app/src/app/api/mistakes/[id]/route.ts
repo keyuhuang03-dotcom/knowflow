@@ -13,10 +13,16 @@ export async function PATCH(req: Request, { params }: Context) {
     const body = record(await req.json());
     const item = await prisma.mistakeItem.findUnique({ where: { id } });
     if (!item) return NextResponse.json({ error: "错题不存在" }, { status: 404 });
+    if (item.skillRecordId && body.userWork !== undefined && text(body.userWork, "解题过程") !== (item.userWork || "")) throw new InputError("完整诊断已归档；请使用诊断修订补充解题过程，原始作答不可覆盖");
     const reviewStatus = body.reviewStatus === undefined ? undefined : text(body.reviewStatus, "复习状态", 30);
     if (reviewStatus && !["pending", "reviewing", "mastered"].includes(reviewStatus)) throw new InputError("复习状态不正确");
     const analysis = body.analysis === undefined ? undefined : parseAnalysis(body.analysis);
     const ids = body.nodeIds === undefined ? undefined : parseNodeIds(body.nodeIds);
+    if (item.skillRecordId && ids) {
+      const current = await prisma.mistakeItem.findUnique({ where: { id }, include: { linkedNodes: true } });
+      const original = (current?.linkedNodes || []).map(n => n.id).sort();
+      if (JSON.stringify([...ids].sort()) !== JSON.stringify(original)) throw new InputError("完整诊断已归档；知识点归属需通过诊断修订核对，不能直接改写旧记录");
+    }
     if (ids) {
       if (body.confirmed !== true) throw new InputError("请确认关联修改");
       const count = await prisma.knowledgeNode.count({ where: { id: { in: ids }, subjectId: item.subjectId } });
@@ -46,6 +52,9 @@ export async function PATCH(req: Request, { params }: Context) {
   }
 }
 export async function DELETE(_req: Request, { params }: Context) {
-  await prisma.mistakeItem.deleteMany({ where: { id: (await params).id } });
+  const id = (await params).id;
+  const item = await prisma.mistakeItem.findUnique({ where: { id }, select: { skillRecordId: true } });
+  if (item?.skillRecordId) return NextResponse.json({ error: "这道错题含有不可覆盖的 Skill 诊断历史，暂不能直接删除" }, { status: 409 });
+  await prisma.mistakeItem.deleteMany({ where: { id } });
   return NextResponse.json({ ok: true });
 }

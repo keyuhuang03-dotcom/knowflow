@@ -1,0 +1,291 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "diagnosis-quality",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "2.0"
+      ]
+    },
+    "model_version": {
+      "type": "string"
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "attempt_feedback": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "mistake_id": {
+            "type": "string"
+          },
+          "feedback_quality": {
+            "enum": [
+              "verified",
+              "strong",
+              "weak",
+              "unverified"
+            ]
+          },
+          "verdict": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "quality_event_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "revision_path": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "event_id": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "event_id",
+                "source",
+                "reason"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "original_labels": {
+            "type": "object",
+            "properties": {
+              "error_type": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "knowledge_node": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "understanding": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outcome": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "error_type",
+              "knowledge_node",
+              "understanding",
+              "outcome"
+            ],
+            "additionalProperties": false
+          },
+          "final_labels": {
+            "type": "object",
+            "properties": {
+              "error_type": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "knowledge_node": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "understanding": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "outcome": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "error_type",
+              "knowledge_node",
+              "understanding",
+              "outcome"
+            ],
+            "additionalProperties": false
+          },
+          "changed_dimensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "subject": {
+            "type": "string"
+          },
+          "chapter": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "supporting_mistakes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "mistake_id",
+          "feedback_quality",
+          "verdict",
+          "reasons",
+          "quality_event_ids",
+          "revision_path",
+          "original_labels",
+          "final_labels",
+          "changed_dimensions",
+          "subject",
+          "chapter",
+          "supporting_mistakes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "confusion_matrix": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "dimension": {
+            "enum": [
+              "error_type",
+              "knowledge_node",
+              "understanding",
+              "outcome"
+            ]
+          },
+          "original": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "effective": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "feedback_quality": {
+            "enum": [
+              "verified",
+              "strong",
+              "weak",
+              "unverified"
+            ]
+          },
+          "count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "supporting_mistakes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "dimension",
+          "original",
+          "effective",
+          "feedback_quality",
+          "count",
+          "supporting_mistakes"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "rule_calibration_candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "enum": [
+              "human_review_required"
+            ]
+          },
+          "suggestion": {
+            "type": "string"
+          },
+          "supporting_mistakes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "feedback_quality": {
+            "enum": [
+              "verified",
+              "strong",
+              "weak",
+              "unverified"
+            ]
+          }
+        },
+        "required": [
+          "status",
+          "suggestion",
+          "supporting_mistakes",
+          "feedback_quality"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "matrix_semantics": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "schema_version",
+    "model_version",
+    "metrics",
+    "attempt_feedback",
+    "confusion_matrix",
+    "rule_calibration_candidates",
+    "matrix_semantics"
+  ],
+  "additionalProperties": false
+}

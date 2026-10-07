@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "mode": {
+            "enum": [
+              "baseline",
+              "rule",
+              "few_shot",
+              "combined"
+            ]
+          },
+          "context_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "prediction": {
+            "type": "object",
+            "properties": {
+              "error_types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "knowledge": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "understanding": {
+                      "enum": [
+                        "understood",
+                        "memorized",
+                        "gap",
+                        "misconception",
+                        "unknown"
+                      ]
+                    },
+                    "outcome": {
+                      "enum": [
+                        "correct",
+                        "partial",
+                        "wrong",
+                        "unknown",
+                        "unobserved"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "node_id",
+                    "understanding",
+                    "outcome"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "first_blocked_step": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "complete",
+                  "needs_information"
+                ]
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "step_id",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "claims": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "error_types",
+              "knowledge",
+              "first_blocked_step",
+              "status",
+              "citations",
+              "claims"
+            ],
+            "additionalProperties": false
+          },
+          "review": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "unsupported_claim_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "adjudication_source": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "confirmation_bias": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "unsupported_claim_count",
+                  "adjudication_source",
+                  "confirmation_bias"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "producer": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "case_id",
+          "mode",
+          "context_id",
+          "prediction",
+          "review",
+          "producer"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "required": [
+    "run_id",
+    "outputs"
+  ],
+  "additionalProperties": false
+}

@@ -50,6 +50,7 @@ app/prisma/dev.db
 
 # uploads
 app/public/uploads/
+app/data/mistake-skill/
 
 # local editor settings
 /.claude/
@@ -61,3 +62,7 @@ app/public/uploads/
 
 # temporary Office files
 ~$*
+
+# Python runtime caches
+__pycache__/
+*.pyc

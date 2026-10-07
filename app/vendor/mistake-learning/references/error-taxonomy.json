@@ -1,0 +1,71 @@
+{
+  "version": "1.0",
+  "types": [
+    {
+      "id": "concept_error",
+      "label": "概念理解错误",
+      "causal_candidate": true,
+      "criterion": "明确说出与定义矛盾的理解；不要把遗漏步骤当概念错误。"
+    },
+    {
+      "id": "formula_error",
+      "label": "公式记忆或使用错误",
+      "causal_candidate": true,
+      "criterion": "公式结构或适用条件用错；会背但不会推导用 derivation_gap。"
+    },
+    {
+      "id": "derivation_gap",
+      "label": "推导来源未理解",
+      "causal_candidate": true,
+      "criterion": "能写公式但无法解释来源或连接基本定律。"
+    },
+    {
+      "id": "model_recognition_error",
+      "label": "模型识别错误",
+      "causal_candidate": true,
+      "criterion": "未识别受力、守恒、概率等合适模型。"
+    },
+    {
+      "id": "condition_recognition_error",
+      "label": "关键条件未识别",
+      "causal_candidate": true,
+      "criterion": "看到了条件却未理解其方法含义；漏读归 reading_error。"
+    },
+    {
+      "id": "reasoning_error",
+      "label": "推理错误",
+      "causal_candidate": true,
+      "criterion": "推导前提到结论不成立。"
+    },
+    {
+      "id": "calculation_error",
+      "label": "计算错误",
+      "causal_candidate": false,
+      "criterion": "模型和列式正确，局部算术或代数运算错。"
+    },
+    {
+      "id": "direction_sign_error",
+      "label": "方向或正负号错误",
+      "causal_candidate": false,
+      "criterion": "向量方向、电荷符号、坐标约定错误，须指明证据。"
+    },
+    {
+      "id": "careless_error",
+      "label": "粗心错误",
+      "causal_candidate": false,
+      "criterion": "仅在有抄错、自行即时纠正等证据时使用，不作兜底标签。"
+    },
+    {
+      "id": "reading_error",
+      "label": "审题错误",
+      "causal_candidate": false,
+      "criterion": "漏读或误读已明确给出的条件。"
+    },
+    {
+      "id": "knowledge_missing",
+      "label": "知识缺失",
+      "causal_candidate": true,
+      "criterion": "学生明确表示不了解，或诊断追问验证缺失；空白答案本身不够。"
+    }
+  ]
+}

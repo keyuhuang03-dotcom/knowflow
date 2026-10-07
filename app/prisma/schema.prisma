@@ -79,6 +79,7 @@ model KnowledgeNodeRelation {
 
 model MistakeItem {
   id              String         @id @default(uuid())
+  skillRecordId   String?        @unique
   subjectId       String
   subject         Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   knowledgeNodeId String?

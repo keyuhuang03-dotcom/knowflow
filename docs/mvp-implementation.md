@@ -88,3 +88,20 @@ npm run build
 测试使用临时 SQLite 库，不执行清库 seed、不接触真实学习数据、不调用收费 AI。覆盖迁移部署、无确认拒绝、跨科目/不存在节点拒绝、多节点落库与回查、重试去重、编辑关联、复习时间、无 AI 配置降级、非法推荐过滤、图片签名与路径限制。
 
 人工验收：上传图片 → 尝试分析（无配置时手动整理）→ 选择两个知识点 → 确认保存 → 从两个节点回看同一条错题 → 编辑卡片与补充 → 完成本次复习；同时检查刷新草稿、切换科目、分析失败重试和窄屏无横向溢出。真实视觉模型效果与 iPhone Safari 相机需要配置服务及真机后继续验收。
+
+
+## Mistake Learning Skill 完整记录（第二步）
+
+工作台错题详情新增“生成完整诊断”。它重新读取原题和真实解题过程，调用已配置的图片模型生成 Skill 的完整诊断 JSON，再运行 Skill 的 `validate`、`save` 和 Word 导出。Skill 的 `mistakes/data` 与追加事件是诊断事实来源；Prisma 只保存 `skillRecordId`，继续管理原题图片和用户确认的主教材节点。重试会按错题 UUID 查找已存档的作答，不制造第二次作答。
+
+本机 `.env` 设置：
+
+```dotenv
+MISTAKE_SKILL_DIR="" # 留空使用仓库内 vendor/mistake-learning；也可指向本机原版 Skill
+MISTAKE_SKILL_DATA_ROOT="" # 可留空，默认 app/data/mistake-skill，已被 Git 忽略
+MISTAKE_SKILL_PYTHON="python3"
+```
+
+仓库内已包含运行所需的脚本、Schema、错误分类与卡片模板，不包含用户错题数据。Python 需安装 `jsonschema>=4.18,<5` 与 `python-docx`。服务端生成诊断、下载 Word；浏览器不直接执行 Python。完整诊断要求至少提供真实解题文字或过程图片。AI 输出必须通过 Skill Schema 和逐字证据校验才能入库；失败时保留原错题，不写入伪诊断。页面允许提交真实纠正，通过 Skill 的 `effective` 与 `apply-event` 追加 revision，原始 JSON 不覆盖。Word 是可重建投影；导出失败不撤销已保存的诊断。备份或迁移电脑时，需同时保存 SQLite 数据库、上传图片和 `MISTAKE_SKILL_DATA_ROOT`（默认 `app/data/mistake-skill`）；现有应用 JSON 备份不包含 Skill 的原始诊断与修订事件。
+
+Skill 在用户已经确认的教材节点路径下记录具体子技能，并计算证据分数；工作台的教材节点和复习状态仍由 Prisma 管理，不自动把 Skill 分数写成 `KnowledgeNode.masteryLevel`。完整诊断是 AI 辅助判断，用户应校对 OCR、公式及错因。当前模型密钥未配置时，完整诊断按钮会提示配置；不能由纯脚本自动理解图片。

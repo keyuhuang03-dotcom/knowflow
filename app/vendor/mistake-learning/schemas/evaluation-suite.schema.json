@@ -1,0 +1,592 @@
+{
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "2.5"
+    },
+    "run_label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": [
+        "real_verified",
+        "synthetic_store_verified",
+        "synthetic_deterministic"
+      ]
+    },
+    "cases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9_-]+$"
+          },
+          "category": {
+            "type": "string",
+            "minLength": 1
+          },
+          "attempt": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "attempt_key": {
+                "type": "string",
+                "minLength": 1
+              },
+              "input": {
+                "type": "object",
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "student_solution": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        },
+                        "text": {
+                          "type": "string",
+                          "minLength": 1,
+                          "pattern": "\\S"
+                        }
+                      },
+                      "required": [
+                        "id",
+                        "text"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "minItems": 1
+                  },
+                  "student_answer": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "correct_answer": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "subject": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "chapter": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  "source_location": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "question",
+                  "student_solution",
+                  "student_answer",
+                  "correct_answer",
+                  "subject",
+                  "chapter",
+                  "source"
+                ],
+                "additionalProperties": false
+              },
+              "supplemental_evidence": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "text"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "candidate_node_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "error_type_candidates": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "attempt_key",
+              "input"
+            ],
+            "additionalProperties": false
+          },
+          "expected": {
+            "$schema": "https://json-schema.org/draft/2020-12/schema",
+            "type": "object",
+            "properties": {
+              "error_types": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "knowledge": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "node_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "understanding": {
+                      "enum": [
+                        "understood",
+                        "memorized",
+                        "gap",
+                        "misconception",
+                        "unknown"
+                      ]
+                    },
+                    "outcome": {
+                      "enum": [
+                        "correct",
+                        "partial",
+                        "wrong",
+                        "unknown",
+                        "unobserved"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "node_id",
+                    "understanding",
+                    "outcome"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "first_blocked_step": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "enum": [
+                  "complete",
+                  "needs_information"
+                ]
+              },
+              "citations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "step_id": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "quote": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "step_id",
+                    "quote"
+                  ],
+                  "additionalProperties": false
+                }
+              },
+              "claims": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "required": [
+              "error_types",
+              "knowledge",
+              "first_blocked_step",
+              "status",
+              "citations",
+              "claims"
+            ],
+            "additionalProperties": false
+          },
+          "group_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "historical": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "contexts": {
+            "type": "object",
+            "properties": {
+              "baseline": {
+                "$ref": "#/$defs/context"
+              },
+              "rule": {
+                "$ref": "#/$defs/context"
+              },
+              "few_shot": {
+                "$ref": "#/$defs/context"
+              },
+              "combined": {
+                "$ref": "#/$defs/context"
+              }
+            },
+            "required": [
+              "baseline",
+              "rule",
+              "few_shot",
+              "combined"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "case_id",
+          "category",
+          "attempt",
+          "expected",
+          "group_id",
+          "historical",
+          "contexts"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "source_snapshot": {
+      "type": "string",
+      "minLength": 1
+    },
+    "status": {
+      "type": "string",
+      "minLength": 1
+    },
+    "run_id": {
+      "type": "string",
+      "pattern": "^V[0-9a-f]{24}$"
+    }
+  },
+  "required": [
+    "schema_version",
+    "run_label",
+    "kind",
+    "cases",
+    "source_snapshot",
+    "status",
+    "run_id"
+  ],
+  "additionalProperties": false,
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "context": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "schema_version": {
+          "enum": [
+            "2.5"
+          ]
+        },
+        "context_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "mode": {
+          "enum": [
+            "baseline",
+            "rule",
+            "few_shot",
+            "combined"
+          ]
+        },
+        "CURRENT_ATTEMPT": {
+          "$schema": "https://json-schema.org/draft/2020-12/schema",
+          "type": "object",
+          "properties": {
+            "attempt_key": {
+              "type": "string",
+              "minLength": 1
+            },
+            "input": {
+              "type": "object",
+              "properties": {
+                "question": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "student_solution": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      },
+                      "text": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "text"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "minItems": 1
+                },
+                "student_answer": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "correct_answer": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "subject": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "chapter": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "source": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "source_location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "question",
+                "student_solution",
+                "student_answer",
+                "correct_answer",
+                "subject",
+                "chapter",
+                "source"
+              ],
+              "additionalProperties": false
+            },
+            "supplemental_evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "text": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "required": [
+                  "id",
+                  "text"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "candidate_node_ids": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "error_type_candidates": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "required": [
+            "attempt_key",
+            "input"
+          ],
+          "additionalProperties": false
+        },
+        "BASE_INSTRUCTIONS": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "APPROVED_RULES": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "RETRIEVED_CASES": {
+          "type": "object"
+        },
+        "HISTORICAL_CONTEXT": {
+          "type": "object"
+        },
+        "EVIDENCE_INSTRUCTIONS": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "provenance": {
+          "type": "object",
+          "properties": {
+            "rule_versions": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            },
+            "example_versions": {
+              "type": "array",
+              "items": {
+                "type": "object"
+              }
+            }
+          },
+          "required": [
+            "rule_versions",
+            "example_versions"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "schema_version",
+        "context_id",
+        "mode",
+        "CURRENT_ATTEMPT",
+        "BASE_INSTRUCTIONS",
+        "APPROVED_RULES",
+        "RETRIEVED_CASES",
+        "HISTORICAL_CONTEXT",
+        "EVIDENCE_INSTRUCTIONS",
+        "provenance"
+      ],
+      "additionalProperties": false
+    }
+  }
+}

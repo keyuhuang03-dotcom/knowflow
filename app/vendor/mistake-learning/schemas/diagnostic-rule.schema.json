@@ -1,0 +1,169 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "rule_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rule_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "pattern": {
+      "type": "string",
+      "minLength": 1
+    },
+    "current_tendency": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rule_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "applicable_conditions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "exceptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "support_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "supporting_examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "example_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mistake_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "group_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "example_id",
+          "version",
+          "mistake_id",
+          "group_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "supporting_mistakes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "conflicting_examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "example_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "version": {
+            "type": "string",
+            "minLength": 1
+          },
+          "mistake_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "group_id": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "example_id",
+          "version",
+          "mistake_id",
+          "group_id"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "feedback_quality": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      }
+    },
+    "evidence_snapshot": {
+      "type": "object",
+      "properties": {
+        "support": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "counterexamples": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      },
+      "required": [
+        "support",
+        "counterexamples"
+      ],
+      "additionalProperties": false
+    },
+    "status": {
+      "enum": [
+        "proposed"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "rule_id",
+    "rule_version",
+    "pattern",
+    "current_tendency",
+    "rule_text",
+    "applicable_conditions",
+    "exceptions",
+    "support_count",
+    "supporting_examples",
+    "supporting_mistakes",
+    "conflicting_examples",
+    "feedback_quality",
+    "evidence_snapshot",
+    "status",
+    "created_at"
+  ],
+  "additionalProperties": false
+}

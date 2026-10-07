@@ -1,0 +1,141 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "training-sample",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "2.0"
+      ]
+    },
+    "sample_id": {
+      "type": "string"
+    },
+    "group_id": {
+      "type": "string"
+    },
+    "split": {
+      "enum": [
+        "train",
+        "eval"
+      ]
+    },
+    "feedback_quality": {
+      "enum": [
+        "verified",
+        "strong"
+      ]
+    },
+    "question": {
+      "type": "string"
+    },
+    "student_solution": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "student_answer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "optional_correct_answer": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "subject": {
+      "type": "string"
+    },
+    "chapter": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "original_diagnosis": {
+      "type": "object"
+    },
+    "final_diagnosis": {
+      "type": "object"
+    },
+    "revision_reasons": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "supplemental_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "text"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "canonical_knowledge_nodes": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 4,
+        "maxItems": 4
+      }
+    },
+    "error_types": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "schema_version",
+    "sample_id",
+    "group_id",
+    "split",
+    "feedback_quality",
+    "question",
+    "student_solution",
+    "student_answer",
+    "optional_correct_answer",
+    "subject",
+    "chapter",
+    "original_diagnosis",
+    "final_diagnosis",
+    "revision_reasons",
+    "supplemental_evidence",
+    "canonical_knowledge_nodes",
+    "error_types"
+  ],
+  "additionalProperties": false
+}

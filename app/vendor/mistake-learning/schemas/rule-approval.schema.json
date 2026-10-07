@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "2.5"
+      ]
+    },
+    "event_id": {
+      "type": "string",
+      "pattern": "^A[0-9]{6,}$"
+    },
+    "previous_hash": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "event_hash": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rule_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "rule_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "action": {
+      "enum": [
+        "approved",
+        "rejected",
+        "deprecated"
+      ]
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "rule_created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "approved_at": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "approval_source": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "explicit_human_cli"
+          ]
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quote": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "kind",
+        "actor",
+        "quote"
+      ],
+      "additionalProperties": false
+    },
+    "rule_snapshot": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "previous_hash",
+    "event_hash",
+    "rule_id",
+    "rule_version",
+    "action",
+    "created_at",
+    "rule_created_at",
+    "approved_at",
+    "approval_source",
+    "rule_snapshot"
+  ],
+  "additionalProperties": false
+}

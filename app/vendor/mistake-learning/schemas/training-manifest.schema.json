@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "training-manifest",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "enum": [
+        "2.0"
+      ]
+    },
+    "split_version": {
+      "type": "string"
+    },
+    "assignments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "sample_id": {
+            "type": "string"
+          },
+          "group_id": {
+            "type": "string"
+          },
+          "split": {
+            "enum": [
+              "train",
+              "eval"
+            ]
+          },
+          "mistake_id": {
+            "type": "string"
+          },
+          "feedback_quality": {
+            "enum": [
+              "verified",
+              "strong",
+              "weak",
+              "unverified"
+            ]
+          },
+          "revision_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sample_id",
+          "group_id",
+          "split",
+          "mistake_id",
+          "feedback_quality",
+          "revision_ids"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "readiness": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "schema_version",
+    "split_version",
+    "assignments",
+    "readiness"
+  ],
+  "additionalProperties": false
+}

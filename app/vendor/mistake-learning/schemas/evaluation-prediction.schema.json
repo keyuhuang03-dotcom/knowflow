@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "error_types": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "knowledge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "node_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "understanding": {
+            "enum": [
+              "understood",
+              "memorized",
+              "gap",
+              "misconception",
+              "unknown"
+            ]
+          },
+          "outcome": {
+            "enum": [
+              "correct",
+              "partial",
+              "wrong",
+              "unknown",
+              "unobserved"
+            ]
+          }
+        },
+        "required": [
+          "node_id",
+          "understanding",
+          "outcome"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "first_blocked_step": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "status": {
+      "enum": [
+        "complete",
+        "needs_information"
+      ]
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "step_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "quote": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "step_id",
+          "quote"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    }
+  },
+  "required": [
+    "error_types",
+    "knowledge",
+    "first_blocked_step",
+    "status",
+    "citations",
+    "claims"
+  ],
+  "additionalProperties": false
+}
