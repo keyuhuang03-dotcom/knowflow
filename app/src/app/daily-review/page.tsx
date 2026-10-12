@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { prisma } from "@/lib/prisma";
 import { FileText, Star } from "lucide-react";
 import ReviewQueue from "@/components/dashboard/ReviewQueue";

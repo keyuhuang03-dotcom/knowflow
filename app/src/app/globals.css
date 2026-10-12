@@ -286,3 +286,12 @@ body {
 .wb-skill-evidence { border-left: 3px solid #8b9a79; padding: .5rem .8rem; background: #f7f9f4; border-radius: .4rem; }
 .wb-skill-evidence p { margin: .35rem 0 0; }
 .wb-skill-raw { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 28rem; overflow: auto; font: inherit; font-size: .84rem; line-height: 1.6; padding: 1rem; background: #f7f8f6; border-radius: .6rem; }
+
+.wb-crop-preview { position: relative; overflow: hidden; max-width: 100%; width: fit-content; margin-inline: auto; }
+.wb-crop-preview img { display: block; max-width: 100%; max-height: 440px; object-fit: contain; }
+@media (max-width: 640px) { .wb-crop-preview img { max-height: 240px; } }
+.wb-crop-preview > div { position: absolute; border: 2px solid #3b8273; box-shadow: 0 0 0 1000px #0006; pointer-events: none; }
+.wb-math-text { min-width: 0; overflow-wrap: anywhere; }
+.wb-math-inline { display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; }
+.wb-math-block { display: block; max-width: 100%; overflow-x: auto; padding-block: 8px; }
+.wb-review-card summary { cursor: pointer; padding-block: 10px; font-weight: 600; }

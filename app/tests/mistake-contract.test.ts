@@ -32,3 +32,9 @@ test("uploads check file signatures instead of trusting extensions", () => {
   assert.equal(imageType(Buffer.from("<svg><script/></svg>")), null);
   assert.equal(imageType(Buffer.from([137,80,78,71,13,10,26,10])), "image/png");
 });
+test("historical and malformed confirmation flags remain unconfirmed", () => {
+  assert.equal(readAnalysis(JSON.stringify({ question: "历史题目" })).diagnosisStatus, "unconfirmed");
+  assert.equal(parseAnalysis({ diagnosisStatus: true }).diagnosisStatus, "unconfirmed");
+  assert.equal(parseAnalysis({ diagnosisStatus: "confirmed" }).diagnosisStatus, "confirmed");
+  assert.equal(parseAnalysis({ recognition: "invented" }).recognition, "uncertain");
+});

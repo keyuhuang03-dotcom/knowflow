@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import KnowFlowShell from "@/components/ui/KnowFlowShell";
+import "./knowflow.css";
 import Sidebar from "@/components/Sidebar";
 
 export const metadata: Metadata = {
-  title: "考研工作台",
+  title: "知序 KnowFlow",
   description: "AI 驱动的个人考研学习工作台",
   manifest: "/manifest.json",
   icons: {
@@ -16,7 +18,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "考研工作台",
+    title: "知序 KnowFlow",
   },
 };
 
@@ -39,9 +41,9 @@ export default function RootLayout({
       </head>
       <body>
         <Sidebar />
-        <main className="md:ml-[240px] min-h-screen p-4 md:p-8 page-enter">
+        <KnowFlowShell>
           {children}
-        </main>
+        </KnowFlowShell>
       </body>
     </html>
   );

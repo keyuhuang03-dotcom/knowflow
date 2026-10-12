@@ -95,7 +95,7 @@ export default function SettingsPage() {
   if (loading) return null;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 md:space-y-6">
+    <div className="kf-settings max-w-2xl mx-auto space-y-4 md:space-y-6">
       <h1 className="text-xl md:text-2xl font-semibold tracking-tight flex items-center gap-2">
         <Settings size={22} strokeWidth={1.5} />
         设置
@@ -108,11 +108,12 @@ export default function SettingsPage() {
         </h2>
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-[var(--accent-foreground)] text-lg font-semibold flex-shrink-0">
-            hk
+            {name.trim().slice(0, 2) || "研"}
           </div>
           <div className="flex-1 flex items-center gap-2">
             <input
               type="text"
+              aria-label="姓名"
               value={name}
               onChange={(e) => setName(e.target.value)}
               onBlur={() => saveField("name", name)}
@@ -136,6 +137,7 @@ export default function SettingsPage() {
           <div className="flex items-center gap-2">
             <input
               type="date"
+              aria-label="考研日期"
               value={examDate}
               onChange={(e) => {
                 setExamDate(e.target.value);
@@ -155,8 +157,8 @@ export default function SettingsPage() {
           外观
         </h2>
         <div className="flex items-center justify-between min-h-[36px]">
-          <span className="text-sm text-[var(--muted-foreground)]">深色模式</span>
-          <span className="text-xs text-[var(--muted-foreground)]">跟随系统</span>
+          <span className="text-sm text-[var(--muted-foreground)]">界面主题</span>
+          <span className="text-xs text-[var(--muted-foreground)]">知序 · 柔光浅色</span>
         </div>
       </div>
 

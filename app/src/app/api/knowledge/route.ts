@@ -8,6 +8,7 @@ export async function GET() {
       chapter: true,
       children: true,
       mistakeItems: { select: { id: true, title: true, reviewStatus: true } },
+      linkedMistakes: { select: { id: true, title: true, reviewStatus: true } },
       notes: { select: { id: true, title: true } },
     },
   });
@@ -53,8 +54,8 @@ export async function GET() {
     lastReviewAt: n.lastReviewAt,
     nextReviewAt: n.nextReviewAt,
     chapterName: n.chapter?.name || null,
-    mistakeCount: n.mistakeItems.length,
-    relatedMistakes: n.mistakeItems,
+    mistakeCount: new Set([...n.mistakeItems, ...n.linkedMistakes].map(m => m.id)).size,
+    relatedMistakes: [...new Map([...n.mistakeItems, ...n.linkedMistakes].map(m => [m.id, m])).values()],
     relatedNotes: n.notes,
     relatedRelations: relations
       .filter((relation) => relation.sourceId === n.id || relation.targetId === n.id)

@@ -445,7 +445,7 @@ export default function NotesPage() {
               {/* AI 新建的知识点 */}
               {aiNewNodes.length > 0 && (
                 <div className="p-3 rounded-lg bg-green-50 border border-green-100">
-                  <p className="text-xs text-green-700 mb-1.5">✅ 已自动添加到知识图谱：</p>
+                  <p className="text-xs text-green-700 mb-1.5">已自动添加到知识图谱：</p>
                   <div className="flex flex-wrap gap-1">
                     {aiNewNodes.map((n, i) => (
                       <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">

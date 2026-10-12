@@ -32,19 +32,22 @@ docs/            PRD、原型图和资料索引
 cd app
 cp .env.example .env
 npm ci
+test -e prisma/dev.db || touch prisma/dev.db
 npx prisma migrate deploy
 ```
 
-在 `.env` 中填写 `DEEPSEEK_API_KEY` 后可使用 AI 功能。首次创建的空数据库可运行以下命令生成初始用户、科目和知识点：
+文本 AI 使用 `DEEPSEEK_API_KEY`；图片分析需单独配置 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`。首次创建的空数据库可运行以下命令生成初始用户、科目和知识点：
 
 ```bash
-npx tsx prisma/seed.ts
+npm run db:bootstrap
 ```
 
-**注意：初始化脚本会清空现有用户及学习数据，仅在新数据库或明确需要重置时运行。**
+安全初始化仅补默认用户和四个科目，不覆盖已有数据。旧 `prisma/seed.ts` 会清空学习数据，不用于日常开发与更新。
 
 ```bash
 npm run dev
+# 另开终端，在 app/ 运行：
+npm run worker
 ```
 
 打开 <http://localhost:3000>。

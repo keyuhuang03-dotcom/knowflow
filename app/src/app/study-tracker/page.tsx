@@ -90,18 +90,19 @@ export default function StudyTrackerPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4 md:space-y-6">
+    <div className="kf-study max-w-2xl mx-auto space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl md:text-2xl font-semibold tracking-tight flex items-center gap-2">
           <TrendingUp size={22} strokeWidth={1.5} />
           学习记录
         </h1>
-        <button onClick={() => setShowForm(true)} className="btn btn-primary text-sm gap-1.5">
+        <button aria-label="记录学习" onClick={() => setShowForm(true)} className="btn btn-primary text-sm gap-1.5">
           <Plus size={14} />
           <span className="hidden sm:inline">记录学习</span>
         </button>
       </div>
 
+      <p className="kf-page-caption">记录每一次投入，沿着时间看见积累。</p>
       {/* Today summary */}
       <div className="card p-4 md:p-5">
         <div className="flex items-center gap-2 text-sm font-semibold mb-3">
@@ -126,7 +127,7 @@ export default function StudyTrackerPage() {
       </div>
 
       {/* History */}
-      <div className="space-y-3">
+      <div className="kf-study-history space-y-3">
         <h2 className="text-sm font-semibold px-1">历史记录</h2>
         {loading ? (
           <div className="text-sm text-[var(--muted-foreground)] p-4">加载中...</div>

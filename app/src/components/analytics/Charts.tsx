@@ -18,8 +18,8 @@ interface ChartsProps {
   pieData: { name: string; value: number }[];
 }
 
-// Monet-inspired low-saturation palette
-const SUBJECT_COLORS = ["#bcc8d4", "#d4c4b8", "#a8bfb4", "#c4bcc8"];
+// KnowFlow subject palette: lime, cream, apricot and soft lavender.
+const SUBJECT_COLORS = ["#b5d878", "#eed995", "#e8c698", "#cbbbe5"];
 
 export default function Charts({ lineData, pieData }: ChartsProps) {
   const hasData = lineData.length > 0 || pieData.length > 0;

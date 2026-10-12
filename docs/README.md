@@ -1,3 +1,15 @@
+# 项目文档索引
+
+- [项目启动](../README.md)
+- [架构](architecture.md)
+- [协作与发布](../CONTRIBUTING.md)
+- [路线图](knowflow-development-roadmap.md)
+- [自动归档](knowflow-phase1-auto-capture.md)
+- [多页上传](knowflow-multipage-upload.md)
+- [教材目录识别](textbook-catalog-photo.md)
+- [视觉规范](knowflow-design-system.md)
+- [部署与状态](aliyun-deployment.md)
+
 # 产品资料索引
 
 ## PRD

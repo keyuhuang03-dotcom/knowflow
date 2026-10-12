@@ -1,6 +1,7 @@
 services:
   web:
     build: ./app
+    image: knowflow-web:local
     restart: unless-stopped
     env_file: ./deploy/app.env
     environment:
@@ -12,6 +13,23 @@ services:
       - ./data:/data
     expose:
       - "3000"
+
+  worker:
+    image: knowflow-web:local
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 75s
+    depends_on:
+      - web
+    command: ["npm", "run", "worker"]
+    env_file: ./deploy/app.env
+    environment:
+      DATABASE_URL: file:/data/kaoyan.db
+      UPLOAD_ROOT: /data/uploads
+      MISTAKE_SKILL_DATA_ROOT: /data/mistake-skill
+      MISTAKE_SKILL_DIR: /app/vendor/mistake-learning
+    volumes:
+      - ./data:/data
 
   caddy:
     image: caddy:2

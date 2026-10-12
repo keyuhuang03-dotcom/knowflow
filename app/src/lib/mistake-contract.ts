@@ -2,6 +2,12 @@
 export type Analysis = {
   version: 1;
   origin: "ai" | "manual";
+  diagnosisStatus?: "unconfirmed" | "confirmed";
+  recognition?: "clear" | "uncertain";
+  uncertainty?: string;
+  nextCheck?: string;
+  recognizedWork?: string;
+  cardPending?: boolean;
   question: string;
   coreConcept: string;
   stickingPoint: string;
@@ -13,7 +19,7 @@ export type Candidate = { id: string; name: string; path: string };
 export type Recommendation = { nodeId: string; reason: string };
 export const analysisFields = [
   ["question", "题目识别结果"], ["coreConcept", "核心考点"],
-  ["stickingPoint", "我的卡点"], ["errorReason", "错误原因"],
+  ["stickingPoint", "可能卡点 / 已确认卡点"], ["errorReason", "可能错因 / 已确认错因"],
   ["method", "关键公式 / 方法"], ["reviewTip", "下次遇到这类题"],
 ] as const;
 export const emptyAnalysis: Analysis = { version: 1, origin: "manual", question: "", coreConcept: "", stickingPoint: "", errorReason: "", method: "", reviewTip: "" };
@@ -32,7 +38,7 @@ export function text(value: unknown, label: string, max = 12000, required = fals
 }
 export function parseAnalysis(value: unknown): Analysis {
   const raw = record(value);
-  return Object.fromEntries([["version", 1], ["origin", raw.origin === "ai" ? "ai" : "manual"], ...analysisFields.map(([key, label]) => [key, text(raw[key], label)])]) as Analysis;
+  return Object.fromEntries([["version", 1], ["cardPending", raw.cardPending === true], ["recognizedWork", text(raw.recognizedWork, "识别过程", 4000)], ["diagnosisStatus", raw.diagnosisStatus === "confirmed" ? "confirmed" : "unconfirmed"], ["recognition", raw.recognition === "clear" ? "clear" : "uncertain"], ["uncertainty", text(raw.uncertainty, "待核对信息")], ["nextCheck", text(raw.nextCheck, "下次先检查什么")], ["origin", raw.origin === "ai" ? "ai" : "manual"], ...analysisFields.map(([key, label]) => [key, text(raw[key], label)])]) as Analysis;
 }
 /** A question photo alone cannot establish why this particular student was wrong. */
 export function requireStudentWorkEvidence(analysis: Analysis, hasStudentWork: boolean): Analysis {

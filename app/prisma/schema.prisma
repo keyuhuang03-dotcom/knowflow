@@ -80,8 +80,8 @@ model KnowledgeNodeRelation {
 model MistakeItem {
   id              String         @id @default(uuid())
   skillRecordId   String?        @unique
-  subjectId       String
-  subject         Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  subjectId       String?
+  subject         Subject?       @relation(fields: [subjectId], references: [id], onDelete: Cascade)
   knowledgeNodeId String?
   knowledgeNode   KnowledgeNode? @relation(fields: [knowledgeNodeId], references: [id], onDelete: SetNull)
   source          String?
@@ -92,6 +92,7 @@ model MistakeItem {
   title           String
   content         String
   imageUrl        String?
+  imageUrls       String?  // ordered JSON array; imageUrl remains the legacy first page
   answer          String?
   errorType       String?
   errorReason     String?
@@ -100,6 +101,12 @@ model MistakeItem {
   reviewStatus    String         @default("pending")
   createdAt       DateTime       @default(now())
   reviewedAt      DateTime?
+  processingStatus String       @default("complete")
+  processingError String?
+  inputVersion    Int           @default(0)
+  linksConfirmed  Boolean       @default(true)
+  updatedAt       DateTime      @default(now()) @updatedAt
+  job             MistakeJob?
 }
 
 model StudySession {
@@ -158,4 +165,29 @@ model Note {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   knowledgeNodes KnowledgeNode[] // many-to-many
+}
+
+// One durable job per captured record. A version change explicitly requeues it.
+model MistakeJob {
+  id           String      @id @default(uuid())
+  mistakeId    String      @unique
+  mistake      MistakeItem @relation(fields: [mistakeId], references: [id], onDelete: Cascade)
+  inputVersion Int
+  status       String      @default("queued")
+  attempts     Int         @default(0)
+  maxAttempts  Int         @default(3)
+  availableAt  DateTime    @default(now())
+  leaseUntil   DateTime?
+  owner        String?
+  lastError    String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  @@index([status, availableAt])
+}
+
+// A database lease also prevents accidentally starting two active workers.
+model WorkerLease {
+  id        String   @id
+  owner     String
+  expiresAt DateTime
 }

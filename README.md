@@ -1,57 +1,69 @@
-# 考研工作台 · Kaoyan Workbench MVP
+# 知序 KnowFlow
 
-以主教材知识目录为骨架，把错题、个人理解和复习卡片关联到已有知识节点。
+AI 驱动的个人学习知识库：以教材为骨架，以学习记录为内容，让用户专注学习。
 
-## 已完成的核心流程
+完整 MVP 项目仓库，包含应用、SQLite 迁移、后台 Worker、Skill、测试、设计资料及部署模板。当前支持多页拍照即保存、后台自动整理、复习卡片、多知识点关联和教材目录拍照导入。识别结果可修改，不清晰内容与未知错因不得当作确定事实。
 
-我的知识库 → 科目知识库 → 知识节点 → 上传/拍照错题 → AI 分析与校对 → 确认 1～3 个已有节点 → 保存 → 从节点回看原题与复习卡片。
+## 快速启动
 
-- Next.js 16 / React 19 / TypeScript / Prisma 6 / SQLite
-- 桌面双栏与手机单栏布局
-- 图片上传、当前标签页草稿恢复、多节点关联、保存重试去重
-- AI 未配置时明确提示，支持手动整理继续保存
-- 不在错题分析中自动创建知识节点
+需要 Node.js 22、npm。完整 Skill 的 Word 导出额外需要 Python 3 和 `app/vendor/mistake-learning/requirements.txt` 中的依赖；基础上传与后台整理无需 Python。
 
-## 本地运行
-
-需要 Node.js 20.9 或更新版本。在全新克隆的项目中：
-
-```sh
+```bash
 cd app
-cp .env.example .env
+cp .env.example .env  # 仅首次创建；已有配置不要覆盖
 npm ci
+test -e prisma/dev.db || touch prisma/dev.db  # 默认SQLite路径；自定义路径先创建父目录和空文件
 npx prisma migrate deploy
-npx tsx prisma/seed.ts
-npm run dev
+npm run db:bootstrap
+npm run dev -- --hostname 0.0.0.0
 ```
 
-打开 http://localhost:3000/knowledge，在科目页核对目录并确认主教材。
+另开终端：
 
-**seed 会清空已有学习数据，只能用于新建的空数据库。已有环境请保留 `.env` 和数据库，不要重新 seed。**
+```bash
+cd app
+npm run worker
+```
 
-## AI 配置
+打开 http://localhost:3000 。手机通过同一网络中的电脑地址访问。Worker 必须独立运行，关闭浏览器不会停止已保存任务。`db:bootstrap` 只补默认用户与四个科目，不删除数据、不填充虚构教材节点；旧 `prisma/seed.ts` 是破坏性演示脚本，不用于更新。
 
-在 `app/.env` 中填写 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`。服务需要支持图片输入和 JSON 输出。原有 DeepSeek 文字接口配置不能代替视觉接口。
+图片 AI 配置 `.env` 的 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`，需支持图片的 Chat Completions 接口；`DEEPSEEK_API_KEY` 供旧文本 AI 使用，不能代替图片配置。未配置 AI 仍可保存照片，任务会显示待配置/失败并可重试。不要提交真实 `.env`。
 
-Mistake Learning Skill 适配入口已预留，目前未直接执行 Skill。真实模型识别质量和 iPhone Safari 真机拍照需配置后进一步验收。
+## 检查与协作
 
-## 检查
-
-```sh
+```bash
 cd app
 npm run lint
 npm run typecheck
-npm run test
-npm run build
+npm test
+npm run build -- --webpack
 ```
 
-当前版本以上检查通过；lint 保留 3 条旧代码警告，测试使用临时数据库及本地模拟视觉服务。
+自动化集成测试使用临时数据库、生成图片和模拟 AI，不证明真实识别准确率。CI 模板见 `docs/ci/ci.yml`；当前 GitHub 凭据缺少 workflow 权限，尚未启用自动检查。补齐权限后将模板放入 `.github/workflows/ci.yml`。iPhone Safari、真实手写和多页目录需单独验收。
 
-## 项目资料
+| 目录 | 内容 |
+| --- | --- |
+| `app/src/app` | 页面、API、上传文件读取路由 |
+| `app/src/components` | 业务 UI 与共享玻璃组件 |
+| `app/src/lib` | AI、任务队列、图片、错题及目录服务 |
+| `app/prisma` | 数据结构、历史迁移与安全初始化 |
+| `app/scripts` | 独立 Worker |
+| `app/vendor/mistake-learning` | 已纳入的 Skill 接口、脚本、模板 |
+| `app/tests` | 单元、隔离集成和可选浏览器测试 |
+| `docs` | 架构、需求、实现、验收及部署 |
+| `deploy`、`compose.yaml` | Docker/Caddy 配置模板 |
+| `scripts` | 数据迁移备份工具 |
+| `assets`、`tools` | 设计素材和调试工具 |
 
-- [MVP 实现、数据迁移与 AI 接口说明](docs/mvp-implementation.md)
+## 文档入口
+
+- [架构与数据流](docs/architecture.md)
+- [开发、测试与发布流程](CONTRIBUTING.md)
 - [开发说明](docs/development.md)
-- [PRD](docs/prd/)
-- [原型图](docs/prototypes/)
+- [开发路线图](docs/knowflow-development-roadmap.md)
+- [第一阶段实现](docs/knowflow-phase1-auto-capture.md)、[多页录入验收](docs/knowflow-multipage-upload.md)
+- [教材目录识别](docs/textbook-catalog-photo.md)、[设计规范](docs/knowflow-design-system.md)
+- [服务器部署步骤与已知状态](docs/aliyun-deployment.md)
+- [全部资料索引](docs/README.md)
 
-仓库不包含真实密钥、学习数据库、用户上传图片、node_modules 或构建缓存。当前为本地单用户应用，部署时需要持久化 SQLite 和上传目录。
+知识图谱重设计、Markdown/Obsidian 导出尚属于路线图，不能视为已实现。服务器更新仍由用户手动执行；GitHub 推送和本地构建不代表上线。仓库不包含个人数据库、照片、备份或真实服务密钥。当前是单人应用，公开多人使用前需完善身份验证与数据隔离。

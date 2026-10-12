@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import { CheckSquare } from "lucide-react";
 import TaskList from "@/components/tasks/TaskList";
 import { getTodayTasksWithCarryOver } from "@/lib/tasks";

@@ -1034,7 +1034,7 @@ export default function GraphView() {
 
               {aiAdded > 0 && (
                 <div className="text-sm text-green-600 text-center">
-                  ✅ 已添加 {aiAdded} 个知识点
+                  已添加 {aiAdded} 个知识点
                 </div>
               )}
             </div>

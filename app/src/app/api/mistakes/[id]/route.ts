@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { InputError, parseAnalysis, parseNodeIds, record, text } from "@/lib/mistake-contract";
+import { enqueueMistake } from "@/lib/mistake-queue";
+import { readUploadedImage } from "@/lib/mistake-files";
 import { mistakeInclude } from "@/lib/mistake-service";
 type Context = { params: Promise<{ id: string }> };
 export async function GET(_req: Request, { params }: Context) {
@@ -17,7 +19,13 @@ export async function PATCH(req: Request, { params }: Context) {
     const reviewStatus = body.reviewStatus === undefined ? undefined : text(body.reviewStatus, "复习状态", 30);
     if (reviewStatus && !["pending", "reviewing", "mastered"].includes(reviewStatus)) throw new InputError("复习状态不正确");
     const analysis = body.analysis === undefined ? undefined : parseAnalysis(body.analysis);
-    const ids = body.nodeIds === undefined ? undefined : parseNodeIds(body.nodeIds);
+    const ids = body.nodeIds === undefined ? undefined : Array.isArray(body.nodeIds) && !body.nodeIds.length ? [] : parseNodeIds(body.nodeIds);
+    const workUrl = body.userWorkImageUrl === undefined ? undefined : text(body.userWorkImageUrl, "解题图片", 250);
+    if (workUrl) await readUploadedImage(workUrl);
+    if (item.skillRecordId && workUrl !== undefined && workUrl !== item.userWorkImageUrl) throw new InputError("原始过程已归档，请使用诊断修订");
+    let subjectId = body.subjectId === undefined ? item.subjectId : text(body.subjectId, "科目", 100) || null;
+    if (item.skillRecordId && subjectId !== item.subjectId) throw new InputError("原始科目已归档，请使用诊断修订");
+    if (subjectId && !await prisma.subject.findUnique({ where: { id: subjectId } })) throw new InputError("科目不存在");
     if (item.skillRecordId && ids) {
       const current = await prisma.mistakeItem.findUnique({ where: { id }, include: { linkedNodes: true } });
       const original = (current?.linkedNodes || []).map(n => n.id).sort();
@@ -25,11 +33,24 @@ export async function PATCH(req: Request, { params }: Context) {
     }
     if (ids) {
       if (body.confirmed !== true) throw new InputError("请确认关联修改");
-      const count = await prisma.knowledgeNode.count({ where: { id: { in: ids }, subjectId: item.subjectId } });
-      if (count !== ids.length) throw new InputError("知识点已变更，请重新选择");
+      const nodes = await prisma.knowledgeNode.findMany({ where: { id: { in: ids } } });
+      if (!subjectId && nodes.length && new Set(nodes.map(n => n.subjectId)).size === 1) subjectId = nodes[0].subjectId;
+      if (nodes.length !== ids.length || nodes.some(n => n.subjectId !== subjectId)) throw new InputError("知识点已变更，请重新选择");
     }
     const updated = await prisma.$transaction(async tx => {
+    const changesInput = ["title", "source", "userWork", "userWorkImageUrl", "subjectId", "analysis", "nodeIds"].some(k => body[k] !== undefined);
+    const reanalyze = body.analysis === undefined && (body.userWork !== undefined || workUrl !== undefined || body.subjectId !== undefined);
+    const current = await tx.mistakeItem.findUniqueOrThrow({ where: { id } });
+    if (current.inputVersion !== item.inputVersion) throw new InputError("记录已更新，请刷新后重试");
+    const version = current.inputVersion + (changesInput ? 1 : 0);
+    if (changesInput) {
+      await tx.mistakeJob.updateMany({ where: { mistakeId: id }, data: { status: "cancelled", owner: null, leaseUntil: null } });
+      if (reanalyze && !item.skillRecordId) await enqueueMistake(tx, id, version);
+    }
     const saved = await tx.mistakeItem.update({ where: { id }, data: {
+      inputVersion: version, subjectId,
+      ...(changesInput ? { processingStatus: reanalyze && !item.skillRecordId ? "queued" : "complete", processingError: null } : {}),
+      userWorkImageUrl: workUrl === undefined ? undefined : workUrl || null,
       reviewStatus, reviewedAt: reviewStatus === "mastered" ? new Date() : undefined,
       userNote: body.userNote === undefined ? undefined : text(body.userNote, "我的补充"),
       title: body.title === undefined ? undefined : text(body.title, "题目名称", 180, true),
@@ -38,7 +59,9 @@ export async function PATCH(req: Request, { params }: Context) {
       aiAnalysis: analysis ? JSON.stringify(analysis) : undefined,
       content: analysis ? analysis.question || "见原题图片" : undefined,
       errorReason: analysis?.errorReason,
-      knowledgeNodeId: ids?.[0], linkedNodes: ids ? { set: ids.map(id => ({ id })) } : undefined,
+      linksConfirmed: ids ? true : undefined,
+      knowledgeNodeId: ids ? ids[0] || null : subjectId !== item.subjectId ? null : undefined,
+      linkedNodes: ids ? { set: ids.map(id => ({ id })) } : subjectId !== item.subjectId ? { set: [] } : undefined,
     }, include: mistakeInclude });
     if (reviewStatus === "mastered") {
       const reviewedIds = [...new Set([...saved.linkedNodes.map(n => n.id), ...(saved.knowledgeNodeId ? [saved.knowledgeNodeId] : [])])];

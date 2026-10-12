@@ -6,7 +6,7 @@ import path from "node:path";
 test("isolated database: migrations, confirmation, associations, retries and edits", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "kaoyan-test-"));
   writeFileSync(path.join(dir, "test.db"), "");
-  const env = { ...process.env, DATABASE_URL: `file:${path.join(dir, "test.db")}` };
+  const env = { ...process.env, DATABASE_URL: `file:${path.join(dir, "test.db")}`, UPLOAD_ROOT: path.join(dir, "uploads") };
   try {
     execFileSync(process.execPath, ["node_modules/prisma/build/index.js", "migrate", "deploy"], { env, stdio: "pipe" });
     execFileSync(process.execPath, ["--import", "tsx", "tests/mistake-integration-run.ts"], { env, stdio: "pipe" });
