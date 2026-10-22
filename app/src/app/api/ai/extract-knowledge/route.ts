@@ -1,8 +1,11 @@
+import { AiBudgetExceeded } from "@/lib/release-controls";
+import { reserveAiUsage } from "@/lib/release-controls";
+import { withAccess } from "@/lib/request-guard";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try {
     const { content } = await req.json();
     if (typeof content !== "string" || !content.trim()) {
@@ -15,10 +18,12 @@ export async function POST(req: NextRequest) {
     const client = new OpenAI({
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: "https://api.deepseek.com/v1",
+    timeout: 30000, maxRetries: 0,
     });
 
-    const response = await client.chat.completions.create({
-    model: "deepseek-chat",
+    await reserveAiUsage();
+  const response = await client.chat.completions.create({
+    model: "deepseek-chat", max_tokens: 1800,
     messages: [
       {
         role: "system",
@@ -57,7 +62,7 @@ export async function POST(req: NextRequest) {
       : [];
 
     const existing = await prisma.knowledgeNode.findMany({
-      where: { name: { in: nodes.map((node) => node.name) } },
+      where: { catalogArchived: false, name: { in: nodes.map((node) => node.name) } },
       select: { id: true, name: true, subject: { select: { name: true } } },
     });
 
@@ -68,8 +73,10 @@ export async function POST(req: NextRequest) {
       )?.id ?? null,
     }));
     return NextResponse.json({ nodes: output });
-  } catch (error) {
+  } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
     console.error("Extract knowledge failed:", error);
     return NextResponse.json({ error: "AI 提取失败" }, { status: 500 });
   }
 }
+
+export const POST = withAccess(POSTHandler);

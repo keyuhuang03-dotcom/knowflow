@@ -1,3 +1,4 @@
+import { FixtureRequest as Request } from "./auth-fixture";
 import { POST as recognizeCatalog, PUT as confirmCatalog } from "../src/app/api/subjects/[id]/catalog/route";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
@@ -71,10 +72,10 @@ async function main() {
       const body = Buffer.concat(chunks).toString();
       const system = JSON.parse(body).messages[0].content;
       const reading = system.startsWith("你只做精确");
-      if (system.startsWith("只转录教材目录")) { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ entries: [{ path: ["第一章", "第一节"], page: 3 }, { path: ["第一章", "第一节"], page: 3 }, { path: ["第一章", "第二节"], page: null }], warnings: ["页码需校对"] }) } }] })); return; }
+      if (system.startsWith("你是教材目录转录器")) { res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ entries: [{ path: ["第一章", "第一节"], page: 3 }, { path: ["第一章", "第一节"], page: 3 }, { path: ["第一章", "第二节"], page: null }], warnings: ["页码需校对"] }) } }] })); return; }
       receivedImage ||= body.includes("data:image/png;base64,");
       res.setHeader("Content-Type", "application/json");
-      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reading ? { rotation: 0, recognition: unclear ? "uncertain" : "clear", questionCount: 1, question: "测试题", studentWork: "", uncertainty: unclear ? "公式不清" : "" } : { analysis: { ...emptyAnalysis, recognition: unclear ? "uncertain" : "clear", diagnosisStatus: "confirmed", question: "测试题", coreConcept: "极限", stickingPoint: "学生不会", errorReason: "粗心" }, recommendations: [{ nodeId: "limit", reason: "本地测试返回" }, { nodeId: "foreign" }, { nodeId: "invented" }, { nodeId: "limit" }] }) } }] }));
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reading ? { rotation: 0, recognition: unclear ? "uncertain" : "clear", questionCount: 1, question: "测试题", studentWork: "", uncertainty: unclear ? "公式不清" : "" } : { analysis: { ...emptyAnalysis, standardSolution: "1. 使用极限定义。2. 代入计算。", finalAnswer: "$1$", recognition: unclear ? "uncertain" : "clear", diagnosisStatus: "confirmed", question: "测试题", coreConcept: "极限", stickingPoint: "学生不会", errorReason: "粗心" }, recommendations: [{ nodeId: "limit", reason: "本地测试返回" }, { nodeId: "foreign" }, { nodeId: "invented" }, { nodeId: "limit" }] }) } }] }));
     });
     provider.listen(0, "127.0.0.1"); await once(provider, "listening");
     const address = provider.address();
@@ -91,7 +92,8 @@ async function main() {
       assert.ok(receivedImage);
       assert.equal(data.analysis.diagnosisStatus, "unconfirmed", "provider cannot confirm on the user's behalf");
       const noWork = await (await analyze(new Request("http://localhost/api/ai/analyze-mistake", { method: "POST", body: JSON.stringify({ ...body, userWork: "" }) }))).json();
-      assert.match(noWork.analysis.errorReason, /无法判断/);
+      assert.equal(noWork.analysis.errorReason, "");
+      assert.ok(noWork.analysis.standardSolution);
       unclear = true;
       const uncertain = await (await analyze(new Request("http://localhost/api/ai/analyze-mistake", { method: "POST", body: JSON.stringify(body) }))).json();
       assert.equal(uncertain.analysis.recognition, "uncertain");

@@ -1,4 +1,5 @@
 "use client";
+import LogoutButton from "@/components/auth/LogoutButton";
 
 import { Settings, User, GraduationCap, Palette, Database, Check, Loader2, Download, Upload } from "lucide-react";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -79,7 +80,7 @@ export default function SettingsPage() {
       const response = await fetch("/api/backup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(backup),
+        body: JSON.stringify({ ...backup, restoreConfirmed: true }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "导入失败");
@@ -96,10 +97,10 @@ export default function SettingsPage() {
 
   return (
     <div className="kf-settings max-w-2xl mx-auto space-y-4 md:space-y-6">
-      <h1 className="text-xl md:text-2xl font-semibold tracking-tight flex items-center gap-2">
+      <div className="flex items-center justify-between gap-4 flex-wrap"><h1 className="text-xl md:text-2xl font-semibold tracking-tight flex items-center gap-2">
         <Settings size={22} strokeWidth={1.5} />
         设置
-      </h1>
+      </h1><LogoutButton /></div>
 
       <div className="card p-4 md:p-5 space-y-4">
         <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -168,7 +169,7 @@ export default function SettingsPage() {
           数据
         </h2>
         <div className="text-sm text-[var(--muted-foreground)]">
-          数据保存在本机 SQLite 中。建议定期导出备份文件。
+          数据保存在当前服务的 SQLite 中。JSON 导出不包含图片；完整备份请使用备份工具。生产环境默认关闭网页整库恢复。
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button onClick={exportBackup} disabled={backupBusy} className="btn btn-primary text-sm gap-2">

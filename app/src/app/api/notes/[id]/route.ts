@@ -1,12 +1,19 @@
+import { record, text } from "@/lib/mistake-contract";
+import { existingNodes } from "@/lib/input-validation";
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function PATCH(
+async function PATCHHandler(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const { title, content, tags, knowledgeNodeIds } = await req.json();
+  const body = record(await req.json());
+  const title = body.title === undefined ? undefined : text(body.title, "笔记标题", 180);
+  const content = body.content === undefined ? undefined : text(body.content, "笔记内容", 100000);
+  const tags = body.tags === undefined ? undefined : body.tags === null ? null : text(body.tags, "标签", 1000);
+  const knowledgeNodeIds = body.knowledgeNodeIds === undefined ? undefined : await existingNodes(body.knowledgeNodeIds);
 
   // If knowledgeNodeIds provided, set the connections (replace all)
   const note = await prisma.note.update({
@@ -24,7 +31,7 @@ export async function PATCH(
   return NextResponse.json(note);
 }
 
-export async function DELETE(
+async function DELETEHandler(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -32,3 +39,6 @@ export async function DELETE(
   await prisma.note.delete({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+
+export const PATCH = withAccess(PATCHHandler);
+export const DELETE = withAccess(DELETEHandler);

@@ -1,3 +1,4 @@
+import { subjectParts } from "./subject-parts";
 /** Shared, versioned boundary for the UI, vision provider and future Skill adapter. */
 export type Analysis = {
   version: 1;
@@ -8,6 +9,10 @@ export type Analysis = {
   nextCheck?: string;
   recognizedWork?: string;
   cardPending?: boolean;
+  standardSolution?: string;
+  finalAnswer?: string;
+  errorOptions?: string[];
+  selfReport?: SelfReport;
   question: string;
   coreConcept: string;
   stickingPoint: string;
@@ -15,6 +20,18 @@ export type Analysis = {
   method: string;
   reviewTip: string;
 };
+export type SelfReport = { stickingPoint: string; causes: string[]; customCause: string };
+export const commonErrorOptions = ["概念理解不清", "公式或条件记错", "没有想到解题方法", "计算或符号错误", "审题遗漏", "还不确定"];
+export function parseSelfReport(value: unknown): SelfReport {
+  const raw = record(value);
+  if (!Array.isArray(raw.causes) || raw.causes.length > 12) throw new InputError("错因选项格式不正确");
+  return { stickingPoint: text(raw.stickingPoint, "我的卡点", 4000), causes: [...new Set(raw.causes.map(v => text(v, "错因", 100, true)))], customCause: text(raw.customCause, "自填错因", 1000) };
+}
+/** Merge only the latest user-owned reflection; background AI must never replace it. */
+export function preserveSelfReport(next: Analysis, previous: string | null): Analysis {
+  const saved = readAnalysis(previous).selfReport;
+  return { ...next, selfReport: saved };
+}
 export type Candidate = { id: string; name: string; path: string };
 export type Recommendation = { nodeId: string; reason: string };
 export const analysisFields = [
@@ -38,7 +55,7 @@ export function text(value: unknown, label: string, max = 12000, required = fals
 }
 export function parseAnalysis(value: unknown): Analysis {
   const raw = record(value);
-  return Object.fromEntries([["version", 1], ["cardPending", raw.cardPending === true], ["recognizedWork", text(raw.recognizedWork, "识别过程", 4000)], ["diagnosisStatus", raw.diagnosisStatus === "confirmed" ? "confirmed" : "unconfirmed"], ["recognition", raw.recognition === "clear" ? "clear" : "uncertain"], ["uncertainty", text(raw.uncertainty, "待核对信息")], ["nextCheck", text(raw.nextCheck, "下次先检查什么")], ["origin", raw.origin === "ai" ? "ai" : "manual"], ...analysisFields.map(([key, label]) => [key, text(raw[key], label)])]) as Analysis;
+  return Object.fromEntries([["version", 1], ["standardSolution", text(raw.standardSolution, "标准解答")], ["finalAnswer", text(raw.finalAnswer, "最终答案")], ["errorOptions", Array.isArray(raw.errorOptions) ? [...new Set(raw.errorOptions.filter((v): v is string => typeof v === "string" && v.trim().length > 0 && v.length <= 100).map(v => v.trim()))].slice(0, 6) : []], ["selfReport", raw.selfReport === undefined ? undefined : parseSelfReport(raw.selfReport)], ["cardPending", raw.cardPending === true], ["recognizedWork", text(raw.recognizedWork, "识别过程", 4000)], ["diagnosisStatus", raw.diagnosisStatus === "confirmed" ? "confirmed" : "unconfirmed"], ["recognition", raw.recognition === "clear" ? "clear" : "uncertain"], ["uncertainty", text(raw.uncertainty, "待核对信息")], ["nextCheck", text(raw.nextCheck, "下次先检查什么")], ["origin", raw.origin === "ai" ? "ai" : "manual"], ...analysisFields.map(([key, label]) => [key, text(raw[key], label)])]) as Analysis;
 }
 /** A question photo alone cannot establish why this particular student was wrong. */
 export function requireStudentWorkEvidence(analysis: Analysis, hasStudentWork: boolean): Analysis {
@@ -73,7 +90,7 @@ export function parseNodeIds(value: unknown): string[] {
   }
   return [...new Set(value)] as string[];
 }
-export function nodePath(node: { id: string; name: string; parentId: string | null; chapter?: { name: string } | null }, all: { id: string; name: string; parentId: string | null }[], subject: string) {
+export function nodePath(node: { id: string; name: string; parentId: string | null; subjectPart?: string | null; chapter?: { name: string } | null }, all: { id: string; name: string; parentId: string | null }[], subject: string) {
   const names = [node.name];
   const visited = new Set([node.id]);
   let parentId = node.parentId;
@@ -84,5 +101,6 @@ export function nodePath(node: { id: string; name: string; parentId: string | nu
     names.unshift(parent.name); parentId = parent.parentId;
   }
   if (node.chapter && !names.includes(node.chapter.name)) names.unshift(node.chapter.name);
-  return [subject, ...names].join(" / ");
+  const partName = Object.values(subjectParts).flat().find(p => p.id === node.subjectPart)?.name;
+  return [subject, ...(partName && !subject.includes(partName) ? [partName] : []), ...names].join(" / ");
 }

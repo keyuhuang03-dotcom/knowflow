@@ -1,20 +1,32 @@
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { InputError, parseAnalysis, parseNodeIds, record, text } from "@/lib/mistake-contract";
+import { InputError, parseSelfReport, preserveSelfReport, parseAnalysis, parseNodeIds, record, text } from "@/lib/mistake-contract";
 import { enqueueMistake } from "@/lib/mistake-queue";
 import { readUploadedImage } from "@/lib/mistake-files";
 import { mistakeInclude } from "@/lib/mistake-service";
 type Context = { params: Promise<{ id: string }> };
-export async function GET(_req: Request, { params }: Context) {
+async function GETHandler(_req: Request, { params }: Context) {
   const item = await prisma.mistakeItem.findUnique({ where: { id: (await params).id }, include: mistakeInclude });
   return item ? NextResponse.json(item) : NextResponse.json({ error: "错题不存在" }, { status: 404 });
 }
-export async function PATCH(req: Request, { params }: Context) {
+async function PATCHHandler(req: Request, { params }: Context) {
   try {
     const { id } = await params;
     const body = record(await req.json());
     const item = await prisma.mistakeItem.findUnique({ where: { id } });
     if (!item) return NextResponse.json({ error: "错题不存在" }, { status: 404 });
+    if (body.selfReport !== undefined) {
+      if (Object.keys(body).some(key => key !== "selfReport")) throw new InputError("请单独保存卡点与错因");
+      const selfReport = parseSelfReport(body.selfReport);
+      const updated = await prisma.$transaction(async tx => {
+        const current = await tx.mistakeItem.findUniqueOrThrow({ where: { id } });
+        let existing: Record<string, unknown> = {};
+        try { existing = record(JSON.parse(current.aiAnalysis || "{}")); } catch { existing = { reviewTip: current.aiAnalysis || "" }; }
+        return tx.mistakeItem.update({ where: { id }, data: { aiAnalysis: JSON.stringify({ ...existing, selfReport }) }, include: mistakeInclude });
+      });
+      return NextResponse.json(updated);
+    }
     if (item.skillRecordId && body.userWork !== undefined && text(body.userWork, "解题过程") !== (item.userWork || "")) throw new InputError("完整诊断已归档；请使用诊断修订补充解题过程，原始作答不可覆盖");
     const reviewStatus = body.reviewStatus === undefined ? undefined : text(body.reviewStatus, "复习状态", 30);
     if (reviewStatus && !["pending", "reviewing", "mastered"].includes(reviewStatus)) throw new InputError("复习状态不正确");
@@ -56,7 +68,7 @@ export async function PATCH(req: Request, { params }: Context) {
       title: body.title === undefined ? undefined : text(body.title, "题目名称", 180, true),
       source: body.source === undefined ? undefined : text(body.source, "来源", 500),
       userWork: body.userWork === undefined ? undefined : text(body.userWork, "解题过程"),
-      aiAnalysis: analysis ? JSON.stringify(analysis) : undefined,
+      aiAnalysis: analysis ? JSON.stringify(preserveSelfReport(analysis, current.aiAnalysis)) : undefined,
       content: analysis ? analysis.question || "见原题图片" : undefined,
       errorReason: analysis?.errorReason,
       linksConfirmed: ids ? true : undefined,
@@ -74,10 +86,14 @@ export async function PATCH(req: Request, { params }: Context) {
     return NextResponse.json({ error: error instanceof InputError ? error.message : "保存失败，请重试" }, { status: error instanceof InputError || error instanceof SyntaxError ? 400 : 500 });
   }
 }
-export async function DELETE(_req: Request, { params }: Context) {
+async function DELETEHandler(_req: Request, { params }: Context) {
   const id = (await params).id;
   const item = await prisma.mistakeItem.findUnique({ where: { id }, select: { skillRecordId: true } });
   if (item?.skillRecordId) return NextResponse.json({ error: "这道错题含有不可覆盖的 Skill 诊断历史，暂不能直接删除" }, { status: 409 });
   await prisma.mistakeItem.deleteMany({ where: { id } });
   return NextResponse.json({ ok: true });
 }
+
+export const GET = withAccess(GETHandler);
+export const PATCH = withAccess(PATCHHandler);
+export const DELETE = withAccess(DELETEHandler);

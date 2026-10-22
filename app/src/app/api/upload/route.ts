@@ -1,3 +1,4 @@
+import { withAccess } from "@/lib/request-guard";
 import { NextResponse } from "next/server";
 import { writeFile, mkdir } from "node:fs/promises";
 import { createHash, randomUUID } from "node:crypto";
@@ -7,7 +8,7 @@ import { readImagePages } from "@/lib/mistake-pages";
 import { InputError, record, text } from "@/lib/mistake-contract";
 import { saveCapturedMistake } from "@/lib/mistake-service";
 export const runtime = "nodejs";
-export async function POST(req: Request) {
+async function POSTHandler(req: Request) {
   try {
     const form = await req.formData();
     const files = form.getAll("file");
@@ -44,3 +45,5 @@ export async function POST(req: Request) {
     return NextResponse.json({ mistakeId: saved?.id, url: savedUrls[0], urls: savedUrls, name: assets[0].name, type: assets[0].type, size: assets.reduce((sum, a) => sum + a.size, 0) });
   } catch (error) { return NextResponse.json({ error: error instanceof InputError ? error.message : "上传或保存失败，全部页面草稿仍可重试。" }, { status: error instanceof InputError || error instanceof SyntaxError ? 400 : 500 }); }
 }
+
+export const POST = withAccess(POSTHandler);

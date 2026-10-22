@@ -1,3 +1,6 @@
+import { cookies, headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { validSession, SESSION_COOKIE } from "@/lib/auth";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import KnowFlowShell from "@/components/ui/KnowFlowShell";
@@ -28,11 +31,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const path = (await headers()).get("x-knowflow-path");
+  if (path !== "/login" && !validSession((await cookies()).get(SESSION_COOKIE)?.value)) redirect("/login");
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>

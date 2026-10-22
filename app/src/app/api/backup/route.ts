@@ -1,9 +1,15 @@
+import { checkExportSize } from "@/lib/export-size";
+import { pauseForRestore } from "@/lib/release-controls";
+import { validateBackup } from "@/lib/backup-validation";
+import { beforeRestoreBackup } from "@/lib/safety-backup";
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { InputError } from "@/lib/mistake-contract";
 import { NextResponse } from "next/server";
 
 interface BackupPayload {
   version: 1 | 2;
+  restoreConfirmed?: boolean;
   exportedAt: string;
   data: {
     users: Array<{ id: string; name: string; examDate: string; createdAt: string }>;
@@ -21,8 +27,11 @@ interface BackupPayload {
   };
 }
 
-export async function GET() {
-  const [users, subjects, chapters, knowledgeNodes, relations, mistakes, sessions, tasks, reviews, resources, notes, jobs] = await prisma.$transaction(async tx => Promise.all([
+async function GETHandler(_req: Request) {
+  void _req;
+  const [users, subjects, chapters, knowledgeNodes, relations, mistakes, sessions, tasks, reviews, resources, notes, jobs] = await prisma.$transaction(async tx => {
+    await checkExportSize(tx);
+    return Promise.all([
     tx.user.findMany(),
     tx.subject.findMany(),
     tx.chapter.findMany(),
@@ -35,7 +44,8 @@ export async function GET() {
     tx.resource.findMany(),
     tx.note.findMany({ include: { knowledgeNodes: { select: { id: true } } } }),
     tx.mistakeJob.findMany(),
-  ]));
+  ]);
+  });
 
   return NextResponse.json({
     version: 2,
@@ -63,9 +73,16 @@ export async function GET() {
 const date = (value: string) => new Date(value);
 const optionalDate = (value: string | null) => value ? new Date(value) : null;
 
-export async function POST(req: Request) {
+async function POSTHandler(req: Request) {
+  let resume: (() => void) | undefined;
   try {
+    if (process.env.NODE_ENV === "production" && process.env.ALLOW_WEB_RESTORE !== "true") return NextResponse.json({ error: "生产环境已关闭网页整库恢复，请使用停写后的离线恢复流程" }, { status: 403 });
     const backup = await req.json() as BackupPayload;
+    if (backup.restoreConfirmed !== true) throw new InputError("请明确确认整库替换操作");
+    validateBackup(backup);
+    if (await prisma.workerLease.findFirst({ where: { expiresAt: { gt: new Date() } } })) throw new InputError("请先停止后台Worker再导入备份");
+    try { resume = pauseForRestore(); } catch { return NextResponse.json({ error: "有其他写入操作正在进行，请稍后再恢复" }, { status: 409 }); }
+    try { await beforeRestoreBackup(); } catch { return NextResponse.json({ error: "恢复前安全备份失败，原数据未替换" }, { status: 503 }); }
     if (![1, 2].includes(backup?.version) || !backup.data || !Array.isArray(backup.data.users)) {
       return NextResponse.json({ error: "备份文件格式无效" }, { status: 400 });
     }
@@ -118,7 +135,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, importedAt: new Date().toISOString() });
   } catch (error) {
-    console.error("Import backup failed:", error);
-    return NextResponse.json({ error: error instanceof InputError ? error.message : "导入失败，原数据未被替换" }, { status: error instanceof InputError ? 409 : 500 });
-  }
+    if (!(error instanceof InputError)) console.error("Import backup failed; transaction rolled back");
+    return NextResponse.json({ error: error instanceof InputError ? error.message : "导入失败，原数据未被替换" }, { status: error instanceof InputError ? 400 : 500 });
+  } finally { resume?.(); }
 }
+
+export const GET = withAccess(GETHandler);
+export const POST = withAccess(POSTHandler);

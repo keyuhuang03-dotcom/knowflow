@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily KnowFlow backup at 04:00 Shanghai time
+[Timer]
+OnCalendar=*-*-* 04:00:00 Asia/Shanghai
+Persistent=true
+Unit=knowflow-backup.service
+[Install]
+WantedBy=timers.target

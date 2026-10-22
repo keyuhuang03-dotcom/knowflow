@@ -1,41 +1,86 @@
+x-logs: &logs
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+x-app: &app
+  image: knowflow-web:local
+  restart: unless-stopped
+  init: true
+  stop_grace_period: 75s
+  env_file: ./deploy/app.env
+  environment: &environment
+    DATABASE_URL: file:/data/kaoyan.db
+    UPLOAD_ROOT: /data/uploads
+    MISTAKE_SKILL_DATA_ROOT: /data/mistake-skill
+    MISTAKE_SKILL_DIR: /app/vendor/mistake-learning
+    BACKUP_ROOT: /data/backups
+    BACKUP_TOOL_PATH: /app/tools/export-cloud-data.py
+    TZ: Asia/Shanghai
+  volumes:
+    - ./data:/data
+  read_only: true
+  tmpfs:
+    - /tmp:size=128m,mode=1777
+    - /app/.next/cache:size=64m,uid=1000,gid=1000,mode=0700
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging: *logs
 services:
   web:
-    build: ./app
-    image: knowflow-web:local
-    restart: unless-stopped
-    env_file: ./deploy/app.env
+    <<: *app
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+    command: [web]
+    mem_limit: 768m
+    cpus: 1.0
     environment:
-      DATABASE_URL: file:/data/kaoyan.db
-      UPLOAD_ROOT: /data/uploads
-      MISTAKE_SKILL_DATA_ROOT: /data/mistake-skill
-      MISTAKE_SKILL_DIR: /app/vendor/mistake-learning
-    volumes:
-      - ./data:/data
-    expose:
-      - "3000"
-
+      <<: *environment
+      NODE_OPTIONS: --max-old-space-size=512
+    # Internal only. Never publish host port 3000.
+    expose: ["3000"]
+    healthcheck:
+      test: [CMD, node, --import, tsx, scripts/healthcheck.ts]
+      interval: 30s
+      timeout: 6s
+      start_period: 90s
+      retries: 3
   worker:
-    image: knowflow-web:local
-    init: true
-    restart: unless-stopped
+    <<: *app
+    command: [worker]
+    mem_limit: 512m
+    cpus: 0.75
+    environment:
+      <<: *environment
+      NODE_OPTIONS: --max-old-space-size=256
     stop_grace_period: 75s
     depends_on:
-      - web
-    command: ["npm", "run", "worker"]
-    env_file: ./deploy/app.env
-    environment:
-      DATABASE_URL: file:/data/kaoyan.db
-      UPLOAD_ROOT: /data/uploads
-      MISTAKE_SKILL_DATA_ROOT: /data/mistake-skill
-      MISTAKE_SKILL_DIR: /app/vendor/mistake-learning
-    volumes:
-      - ./data:/data
-
+      web:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, --import, tsx, scripts/healthcheck.ts, worker]
+      interval: 30s
+      timeout: 6s
+      start_period: 30s
+      retries: 3
+  backup:
+    <<: *app
+    profiles: [maintenance]
+    restart: "no"
+    command: [python3, /app/tools/export-cloud-data.py, /data/backups/manual.tar.gz, --database, /data/kaoyan.db, --uploads, /data/uploads, --skill-data, /data/mistake-skill]
+    mem_limit: 256m
+    cpus: 0.5
   caddy:
-    image: caddy:2
+    image: public.ecr.aws/docker/library/caddy:2
     restart: unless-stopped
+    logging: *logs
+    mem_limit: 128m
+    cpus: 0.25
+    security_opt: [no-new-privileges:true]
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     ports:
       - "80:80"
       - "443:443"
@@ -43,7 +88,6 @@ services:
       - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-
 volumes:
   caddy_data:
   caddy_config:

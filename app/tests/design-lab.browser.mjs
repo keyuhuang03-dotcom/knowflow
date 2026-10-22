@@ -1,3 +1,4 @@
+import { authenticate } from "./browser-auth.mjs";
 // Optional browser QA; uses an existing Playwright installation, not a project dependency.
 import assert from 'node:assert/strict';
 import { tmpdir } from 'node:os';
@@ -7,6 +8,7 @@ const { chromium } = await import(process.env.KNOWFLOW_PLAYWRIGHT || 'playwright
  const browser = await chromium.launch({executablePath:process.env.KNOWFLOW_CHROME || undefined,headless:true});
  try {
  const context = await browser.newContext({viewport:{width:1512,height:1100}});
+ await authenticate(context,process.env.KNOWFLOW_TEST_URL || "http://127.0.0.1:3000");
  const page = await context.newPage(); const errors=[]; page.on('pageerror',e=>errors.push(e.message));
  await page.goto(`${process.env.KNOWFLOW_TEST_URL || 'http://127.0.0.1:3000'}/design-lab`,{waitUntil:'networkidle'});
  await page.locator('[data-variant="C"][data-refraction="active"]').waitFor();
@@ -28,7 +30,7 @@ const { chromium } = await import(process.env.KNOWFLOW_PLAYWRIGHT || 'playwright
  await page.getByRole('button',{name:'复制 CSS 参数'}).click();await page.locator('p[role="status"]').filter({hasText:/已复制|无法自动复制/}).waitFor();
  await page.locator('#glass-blur').fill('0'); await page.locator('#glass-refraction').fill('8'); const activeImage = await page.locator('[data-variant="C"]').screenshot(); await page.getByLabel('C 使用兼容模式').check(); const fallbackImage = await page.locator('[data-variant="C"]').screenshot(); assert.equal(activeImage.equals(fallbackImage), false, 'SVG refraction must change actual pixels'); await page.getByLabel('C 使用兼容模式').uncheck();
  await page.emulateMedia({contrast:'more'});await page.locator('[data-variant="C"][data-refraction="off"]').waitFor();assert.equal(await page.locator('[data-variant="C"]').getAttribute('data-refraction'),'off');
- const mobile = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); const p=await mobile.newPage();p.on('pageerror',e=>errors.push(e.message));
+ const mobile = await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true}); await authenticate(mobile,process.env.KNOWFLOW_TEST_URL || "http://127.0.0.1:3000"); const p=await mobile.newPage();p.on('pageerror',e=>errors.push(e.message));
  await p.goto(`${process.env.KNOWFLOW_TEST_URL || 'http://127.0.0.1:3000'}/design-lab`,{waitUntil:'networkidle'});await p.getByLabel('C 使用兼容模式').check(); await p.getByLabel('C 使用兼容模式').uncheck(); await p.locator('[data-variant="C"][data-refraction="off"]').waitFor(); assert.equal(await p.locator('[data-variant="C"]').getAttribute('data-refraction'),'off');
  assert.equal(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);
  await p.screenshot({path:path.join(tmpdir(), 'knowflow-glass-mobile.png'),fullPage:true});

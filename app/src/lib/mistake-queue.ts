@@ -1,9 +1,10 @@
+import { AiBudgetExceeded } from "./release-controls";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { analyzeUploadedMistake, AIUnavailable } from "./mistake-ai";
 import { readImagePages } from "./mistake-pages";
-import { InputError, nodePath } from "./mistake-contract";
+import { InputError, nodePath, preserveSelfReport } from "./mistake-contract";
 
 export const WORKER_LEASE_ID = "mistake-organizer";
 export async function enqueueMistake(tx: Prisma.TransactionClient, mistakeId: string, inputVersion: number) {
@@ -41,7 +42,7 @@ export async function runWorkerOnce(owner = randomUUID(), leaseMs = 90000) {
   try {
     const item = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: job.mistakeId }, include: { subject: true, linkedNodes: true } });
     if (item.inputVersion !== job.inputVersion) return true;
-    const nodes = await prisma.knowledgeNode.findMany({ where: { ...(item.subjectId ? { subjectId: item.subjectId } : {}), subject: { textbookTitle: { not: null } } }, include: { chapter: true, subject: true } });
+    const nodes = await prisma.knowledgeNode.findMany({ where: { catalogArchived: false, ...(item.subjectId ? { subjectId: item.subjectId } : {}), subject: { textbookTitle: { not: null } } }, include: { chapter: true, subject: true } });
     const result = await analyzeUploadedMistake({ imageUrl: item.imageUrl || "", imageUrls: readImagePages(item.imageUrls, item.imageUrl), userWorkImageUrl: item.userWorkImageUrl || "", userWork: item.userWork || "", source: item.source || "", subject: item.subject?.name || "未确定", textbook: item.subject?.textbookTitle || "未设置；只整理内容，不创建教材节点", candidates: nodes.map(n => ({ id: n.id, name: n.name, path: nodePath(n, nodes.filter(x => x.subjectId === n.subjectId), n.subject.name) })) });
     const chosen = nodes.filter(n => result.recommendations.some(r => r.nodeId === n.id));
     // Ambiguous cross-subject matches remain unlinked. No invented subject/node.
@@ -54,16 +55,18 @@ export async function runWorkerOnce(owner = randomUUID(), leaseMs = 90000) {
       if (!applied.count) return;
       const current = await tx.mistakeItem.findUnique({ where: { id: item.id } });
       if (!current || current.inputVersion !== job.inputVersion) return;
+      const activeLinks = await tx.knowledgeNode.findMany({ where: { id: { in: links.map(n => n.id) }, catalogArchived: false } });
+      const activeRecommendations = result.recommendations.filter(r => activeLinks.some(n => n.id === r.nodeId));
       await tx.mistakeItem.update({ where: { id: item.id }, data: {
-        content: result.analysis.question, aiAnalysis: JSON.stringify({ ...result.analysis, recommendations: result.recommendations }), errorReason: result.analysis.errorReason,
+        content: result.analysis.question, aiAnalysis: JSON.stringify({ ...preserveSelfReport(result.analysis, current.aiAnalysis), recommendations: activeRecommendations }), errorReason: result.analysis.errorReason,
         title: current.title === "待整理错题" ? result.analysis.coreConcept.slice(0, 100) || "错题记录" : current.title,
         processingStatus: result.analysis.recognition === "clear" && !result.analysis.cardPending ? "complete" : "needs_information", processingError: null,
-        ...(!current.linksConfirmed ? { subjectId: current.subjectId || links[0]?.subjectId || null, knowledgeNodeId: links[0]?.id || null, linkedNodes: { set: links.map(n => ({ id: n.id })) }, relatedKnowledge: JSON.stringify(links.map(n => n.name)) } : {}),
+        ...(!current.linksConfirmed ? { subjectId: current.subjectId || activeLinks[0]?.subjectId || null, knowledgeNodeId: activeLinks[0]?.id || null, linkedNodes: { set: activeLinks.map(n => ({ id: n.id })) }, relatedKnowledge: JSON.stringify(activeLinks.map(n => n.name)) } : {}),
       } });
     });
   } catch (error) {
-    const terminal = error instanceof AIUnavailable || error instanceof InputError || job.attempts >= job.maxAttempts;
-    const message = error instanceof AIUnavailable ? "尚未配置图片分析服务。照片和记录已保存，配置后可重试。" : error instanceof InputError ? "图片暂时无法读取。记录仍保留，请检查上传文件。" : "AI 整理暂时失败，照片和记录已保存。";
+    const terminal = error instanceof AiBudgetExceeded || error instanceof AIUnavailable || error instanceof InputError || job.attempts >= job.maxAttempts;
+    const message = error instanceof AiBudgetExceeded ? error.message : error instanceof AIUnavailable ? "尚未配置图片分析服务。照片和记录已保存，配置后可重试。" : error instanceof InputError ? `图片暂时无法读取：${error.message}。记录仍保留。` : "AI 整理暂时失败，照片和记录已保存。";
     await prisma.$transaction(async tx => {
       const lease = await tx.workerLease.findUnique({ where: { id: WORKER_LEASE_ID } });
       if (lease?.owner !== owner || lease.expiresAt <= new Date()) return;

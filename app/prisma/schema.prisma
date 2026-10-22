@@ -20,6 +20,7 @@ model Subject {
   id             String   @id @default(uuid())
   name           String
   textbookTitle  String?
+  partTextbooks  String? // JSON: fixed subject-part keys -> textbook titles
   targetScore    Float?
   color          String   @default("#000000")
   chapters       Chapter[]
@@ -54,6 +55,10 @@ model KnowledgeNode {
   masteryLevel Int      @default(0) // 0-5
   status       String   @default("unlearned") // unlearned/learning/mastered/keypoint/frequent_mistake
   tags         String?
+  subjectPart String?
+  catalogImported Boolean @default(false)
+  catalogArchived Boolean @default(false)
+  catalogOrder Int @default(0)
   pageStart    Int?
   pageEnd      Int?
   description  String?  // 我的理解 / Markdown notes
@@ -190,4 +195,10 @@ model WorkerLease {
   id        String   @id
   owner     String
   expiresAt DateTime
+}
+
+// Persistent single-user AI operation budget; never reset by user-data restores.
+model AiUsageDay {
+  day  String @id
+  used Int    @default(0)
 }

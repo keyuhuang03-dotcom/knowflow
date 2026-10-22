@@ -1,5 +1,6 @@
 # 项目文档索引
 
+- [登录与请求限制](security-p0-login-request-limits.md)
 - [项目启动](../README.md)
 - [架构](architecture.md)
 - [协作与发布](../CONTRIBUTING.md)
@@ -48,3 +49,7 @@
 完整目录说明见 [文件分类说明](structure.md)。
 
 开发和运行方式见 [开发说明](development.md)。应用代码及配置统一位于 `app/`。
+
+- [上线前检查、本地验收与剩余风险](release-readiness.md)
+
+- [标准解答与用户复盘](standard-solution-review.md)：标准题解、用户自填卡点和错因，以及保存兼容说明。

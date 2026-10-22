@@ -1,0 +1,8 @@
+.card { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.status { align-self: flex-start; margin: 0; padding: 4px 10px; border-radius: 999px; background: #edf4df; color: #536b32; font-size: 12px; line-height: 1.5; }
+.prompt { margin: 4px 0 0; color: #6d7864; font-size: 13px; }
+.card > details { border-top: 1px solid #e5eadf; }
+.card summary { cursor: pointer; padding-block: 10px; font-size: 15px; line-height: 1.5; font-weight: 600; }
+.card details[open] > :not(summary) { margin-block: 8px; }
+.card .more > summary { font-size: 13px; color: #69765e; }
+.more h3 { font-size: 13px; margin: 12px 0 6px; }

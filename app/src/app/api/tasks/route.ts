@@ -1,9 +1,13 @@
+import { record } from "@/lib/mistake-contract";
+import { text } from "@/lib/mistake-contract";
+import { integer } from "@/lib/input-validation";
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
-export async function POST(req: NextRequest) {
-  const { title, priority, subjectId } = await req.json();
-  const normalizedTitle = typeof title === "string" ? title.trim() : "";
+async function POSTHandler(req: NextRequest) {
+  const { title, priority, subjectId } = record(await req.json());
+  const normalizedTitle = text(title, "任务内容", 500, true);
   if (!normalizedTitle) {
     return NextResponse.json({ error: "任务内容不能为空" }, { status: 400 });
   }
@@ -18,8 +22,8 @@ export async function POST(req: NextRequest) {
     data: {
       title: normalizedTitle,
       userId: user.id,
-      subjectId: typeof subjectId === "string" && subjectId ? subjectId : null,
-      priority: Number.isInteger(priority) ? Math.max(0, Math.min(2, priority)) : 0,
+      subjectId: subjectId === undefined || subjectId === null || subjectId === "" ? null : text(subjectId, "科目", 128, true),
+      priority: priority === undefined ? 0 : integer(priority, "优先级", 0, 2),
       date: today,
     },
     include: { subject: true },
@@ -27,3 +31,5 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json(task);
 }
+
+export const POST = withAccess(POSTHandler);

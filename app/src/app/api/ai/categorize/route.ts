@@ -1,8 +1,11 @@
+import { AiBudgetExceeded } from "@/lib/release-controls";
+import { reserveAiUsage } from "@/lib/release-controls";
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try {
     const { content } = await req.json();
     if (!content || !process.env.DEEPSEEK_API_KEY) {
@@ -10,6 +13,7 @@ export async function POST(req: NextRequest) {
     }
 
     const allNodes = await prisma.knowledgeNode.findMany({
+      where: { catalogArchived: false },
       select: { id: true, name: true, subject: { select: { name: true } } },
     });
 
@@ -18,10 +22,12 @@ export async function POST(req: NextRequest) {
     const client = new OpenAI({
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: "https://api.deepseek.com/v1",
+    timeout: 30000, maxRetries: 0,
     });
 
-    const response = await client.chat.completions.create({
-      model: "deepseek-chat",
+    await reserveAiUsage();
+  const response = await client.chat.completions.create({
+      model: "deepseek-chat", max_tokens: 1800,
       messages: [
         {
           role: "system",
@@ -69,7 +75,7 @@ export async function POST(req: NextRequest) {
           });
           createdNodes.push({ id: node.id, name: node.name, subject: node.subject.name });
         }
-      } catch {
+      } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
         // skip duplicates
       }
     }
@@ -78,8 +84,10 @@ export async function POST(req: NextRequest) {
       nodes: matched.map((n) => ({ id: n.id, name: n.name, subject: n.subject.name })),
       newNodes: createdNodes,
     });
-  } catch (e) {
+  } catch (e) { if (e instanceof AiBudgetExceeded) throw e;
     console.error("AI categorize error:", e);
     return NextResponse.json({ nodes: [], newNodes: [] });
   }
 }
+
+export const POST = withAccess(POSTHandler);

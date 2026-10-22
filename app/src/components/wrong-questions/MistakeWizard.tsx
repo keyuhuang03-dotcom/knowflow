@@ -54,12 +54,11 @@ function Capture({ subjects, initialSubject, initialNode }: Props) {
   return <div className="wb-page"><Link className="wb-back" href="/wrong-questions">← 我的错题</Link><header className="wb-header"><div><p className="wb-eyebrow">拍照 → 自动整理 → 回看</p><h1>拍下这次卡点</h1><p className="wb-muted">同一道题的题干与过程可上传多页，全部上传成功即保存，不用等待 AI。</p></div></header><section className="wb-panel wb-stack"><fieldset className="wb-reset-fieldset wb-stack" disabled={Boolean(busy)}>
     <MultiImageIntake key={draft.id} storageId={`${draft.id}:imageUrl`} label="题干与过程" onBusy={setBusy} onPending={() => {}} uploadMetadata={metadata} onUploaded={async (_urls, result) => { if (!result?.mistakeId) throw new Error("服务器尚未确认保存，请重试"); saved(result.mistakeId); }} />
     <label className="wb-field">科目（可选）<select value={draft.subjectId} onChange={e => update({ subjectId: e.target.value, selected: [] })}><option value="">未确定，交给 AI 整理</option>{subjects.map(s => <option value={s.id} key={s.id}>{s.name}</option>)}</select></label>
-    <label className="wb-choice"><input type="checkbox" checked={sameImageWork} onChange={e => { setSameImageWork(e.target.checked); update({ sameImageWork: e.target.checked }); }} /><span>原题照片里也包含我的解题过程</span></label>
-    <label className="wb-field">我卡在这里（可选）<textarea rows={2} maxLength={12000} value={draft.userWork} onChange={e => update({ userWork: e.target.value })} placeholder="一句话就好，也可以完全不填" /></label>
+    <label className="wb-field">我卡在这里（可选）<textarea rows={2} maxLength={4000} value={draft.userWork} onChange={e => update({ userWork: e.target.value })} placeholder="一句话就好，也可以完全不填" /></label>
     <details className="wb-stack"><summary>补充来源、名称或单独的过程照片（可选）</summary><label className="wb-field">题目名称<input maxLength={180} value={draft.title} onChange={e => update({ title: e.target.value })} /></label><label className="wb-field">来源<input maxLength={500} value={draft.source} onChange={e => update({ source: e.target.value })} /></label><ImageIntake storageId={`${draft.id}:userWorkImageUrl`} label="解题过程" onBusy={setBusy} onPending={setWorkPending} onUploaded={url => update({ userWorkImageUrl: url })} />{draft.userWorkImageUrl && <p className="wb-muted">过程照片已上传，将随原题一起保存。</p>}</details>
     {draft.imageUrl && <button className="btn btn-primary" disabled={Boolean(busy)} onClick={() => void archiveExisting()}>恢复旧草稿：保存已上传原图并整理</button>}
     </fieldset><p className="wb-muted wb-small">请等到“照片已保存”再离开。AI 看不清的步骤会保留为待补充。上传前的处理图片会尝试暂存在此浏览器；换设备不能恢复。</p>
-    <p className="wb-muted wb-small">照片、过程和已有教材目录会发送给已配置的图片 AI 服务。</p>
+    <p className="wb-muted wb-small">原题照片和已有教材目录会发送给已配置的 AI 服务，用于识别题目和生成标准解答；不诊断你的手写作答。</p>
     <Link className="wb-text-link" href="/wrong-questions/new?manual=1">使用原有手动分析与确认流程</Link>
   </section>{notice && <p className="wb-error" role="alert">{notice}</p>}</div>;
 }

@@ -56,7 +56,7 @@ export async function saveCapturedMistake(value: unknown) {
     return await prisma.$transaction(async tx => {
       if (subjectId && !await tx.subject.findUnique({ where: { id: subjectId } })) throw new InputError("科目已删除，请选择未确定科目后重试");
       if (nodeIds.length && (!subjectId || await tx.knowledgeNode.count({ where: { id: { in: nodeIds }, subjectId } }) !== nodeIds.length)) throw new InputError("知识点已变更，请重新选择");
-      const item = await tx.mistakeItem.create({ data: { ...data, id, subjectId, processingStatus: "queued", linksConfirmed: Boolean(nodeIds.length), knowledgeNodeId: nodeIds[0] || null, linkedNodes: { connect: nodeIds.map(id => ({ id })) }, job: { create: { inputVersion: 0 } } }, include: mistakeInclude });
+      const item = await tx.mistakeItem.create({ data: { ...data, aiAnalysis: JSON.stringify({ selfReport: { stickingPoint: data.userWork.slice(0, 4000), causes: [], customCause: "" } }), id, subjectId, processingStatus: "queued", linksConfirmed: Boolean(nodeIds.length), knowledgeNodeId: nodeIds[0] || null, linkedNodes: { connect: nodeIds.map(id => ({ id })) }, job: { create: { inputVersion: 0 } } }, include: mistakeInclude });
       return item;
     });
   } catch (error) {

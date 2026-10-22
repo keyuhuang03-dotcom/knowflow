@@ -71,3 +71,14 @@ app/data/mistake-skill/
 # Python runtime caches
 __pycache__/
 *.pyc
+
+# Atomic login configuration temporary files
+/deploy/app.env.*.tmp
+
+# Generated container config and private restoration staging
+/app/next.config.mjs
+/data-before-restore-*/
+/.restore-staging.*/
+
+
+.knowflow-maintenance.lock

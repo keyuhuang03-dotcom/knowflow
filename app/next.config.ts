@@ -1,13 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [{ source: "/:path*", headers: [
+      { key: "X-Content-Type-Options", value: "nosniff" },
+      { key: "X-Frame-Options", value: "DENY" },
+      { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+      { key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" },
+    ] }];
+  },
+  experimental: { proxyClientMaxBodySize: "26mb" },
   images: {
-    remotePatterns: [
-      {
-        protocol: "https",
-        hostname: "**",
-      },
-    ],
+    // Learning images are served locally; no external optimizer fetches.
+    remotePatterns: [],
   },
   // Allow phones on private networks to load dev assets and hydrate even when
   // the computer's DHCP address changes. Keep these as hostnames (no ports).

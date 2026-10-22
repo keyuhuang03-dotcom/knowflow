@@ -1,3 +1,5 @@
+import { AiBudgetExceeded } from "@/lib/release-controls";
+import { withAccess } from "@/lib/request-guard";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { InputError, record, text } from "@/lib/mistake-contract";
@@ -5,7 +7,7 @@ import { createSkillRecord, loadSkillSource, reviseSkillRecord } from "@/lib/mis
 
 export const runtime = "nodejs";
 type Context = { params: Promise<{ id: string }> };
-export async function POST(request: Request, { params }: Context) {
+async function POSTHandler(request: Request, { params }: Context) {
   try {
     const { id } = await params;
     const body = record(await request.json());
@@ -22,7 +24,9 @@ export async function POST(request: Request, { params }: Context) {
       return NextResponse.json(await reviseSkillRecord(item, correction));
     }
     throw new InputError("操作不正确");
-  } catch (error) {
+  } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
     return NextResponse.json({ error: error instanceof InputError ? error.message : error instanceof Error ? error.message : "Skill 处理失败，请重试" }, { status: error instanceof InputError || error instanceof SyntaxError ? 400 : 500 });
   }
 }
+
+export const POST = withAccess(POSTHandler);

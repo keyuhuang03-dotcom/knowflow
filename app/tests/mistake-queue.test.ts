@@ -6,7 +6,7 @@ import path from "node:path";
 test("durable capture: worker process, restart, retries, singleton, editing race and backup", () => {
   const dir = mkdtempSync(path.join(tmpdir(), "knowflow-queue-"));
   writeFileSync(path.join(dir, "test.db"), "");
-  const env = { ...process.env, DATABASE_URL: `file:${path.join(dir, "test.db")}`, UPLOAD_ROOT: path.join(dir, "uploads"), MISTAKE_AI_API_KEY: "", MISTAKE_AI_MODEL: "" };
+  const env = { ...process.env, DATABASE_URL: `file:${path.join(dir, "test.db")}`, UPLOAD_ROOT: path.join(dir, "uploads"), BACKUP_ROOT: path.join(dir, "backups"), MISTAKE_AI_API_KEY: "", MISTAKE_AI_MODEL: "" };
   try {
     execFileSync(process.execPath, ["node_modules/prisma/build/index.js", "migrate", "deploy"], { env, stdio: "pipe" });
     execFileSync(process.execPath, ["--import", "tsx", "tests/mistake-queue-run.ts"], { env, stdio: "pipe", timeout: 60000 });

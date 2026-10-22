@@ -1,12 +1,15 @@
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+async function GETHandler(_req: Request) {
+  void _req;
   const nodes = await prisma.knowledgeNode.findMany({
+    where: { catalogArchived: false },
     include: {
       subject: true,
       chapter: true,
-      children: true,
+      children: { where: { catalogArchived: false } },
       mistakeItems: { select: { id: true, title: true, reviewStatus: true } },
       linkedMistakes: { select: { id: true, title: true, reviewStatus: true } },
       notes: { select: { id: true, title: true } },
@@ -17,7 +20,7 @@ export async function GET() {
     return NextResponse.json({ nodes: [], edges: [] });
   }
 
-  const relations = await prisma.knowledgeNodeRelation.findMany();
+  const relations = await prisma.knowledgeNodeRelation.findMany({ where: { source: { catalogArchived: false }, target: { catalogArchived: false } } });
 
   // Calculate depth for each node
   const depthMap = new Map<string, number>();
@@ -102,3 +105,5 @@ export async function GET() {
 
   return NextResponse.json({ nodes: outputNodes, edges });
 }
+
+export const GET = withAccess(GETHandler);

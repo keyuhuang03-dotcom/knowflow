@@ -1,3 +1,4 @@
+import sharp from "sharp";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { InputError } from "./mistake-contract";
@@ -16,5 +17,9 @@ export async function readUploadedImage(url: unknown) {
   catch { throw new InputError("原图已不存在，请重新上传"); }
   const type = imageType(bytes);
   if (!type || bytes.length > 10 * 1024 * 1024) throw new InputError("图片格式不支持或超过 10MB");
+  try {
+    const meta = await sharp(bytes, { limitInputPixels: 20_000_000 }).metadata();
+    if (!meta.width || !meta.height || meta.width * meta.height > 20_000_000 || (meta.pages || 1) > 1) throw new Error();
+  } catch { throw new InputError("图片损坏、像素过大或为动画，请重新选择静态图片并压缩后上传"); }
   return { bytes, type, url };
 }

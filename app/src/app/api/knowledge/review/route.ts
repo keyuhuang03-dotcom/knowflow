@@ -1,3 +1,4 @@
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -8,7 +9,8 @@ const intervals = {
   skip: 1,
 } as const;
 
-export async function GET() {
+async function GETHandler(_req: Request) {
+  void _req;
   const now = new Date();
   const nodes = await prisma.knowledgeNode.findMany({
     where: {
@@ -42,10 +44,10 @@ export async function GET() {
   })));
 }
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try {
     const { nodeId, result } = await req.json();
-    if (typeof nodeId !== "string" || !(result in intervals)) {
+    if (typeof nodeId !== "string" || typeof result !== "string" || !Object.hasOwn(intervals, result)) {
       return NextResponse.json({ error: "复习结果无效" }, { status: 400 });
     }
 
@@ -76,3 +78,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "保存复习结果失败" }, { status: 500 });
   }
 }
+
+export const GET = withAccess(GETHandler);
+export const POST = withAccess(POSTHandler);

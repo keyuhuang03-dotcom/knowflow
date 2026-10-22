@@ -1,8 +1,51 @@
-# Replace this domain with a DNS name pointing at the server.
-study.example.com {
-    encode zstd gzip
-    basic_auth {
-        learner REPLACE_WITH_CADDY_BCRYPT_HASH
+{
+    servers {
+        timeouts {
+            read_header 10s
+            read_body 75s
+            idle 2m
+        }
     }
-    reverse_proxy web:3000
+}
+# Replace with your domain and set APP_ORIGIN to the same HTTPS origin.
+www.koayan.cn {
+    encode zstd gzip
+    header Strict-Transport-Security "max-age=15552000"
+    # App login protects pages, APIs, uploads and exports. Optional outer
+    # basic_auth can be added, but would also gate the login screen.
+    @upload path /api/upload
+    @login path /api/auth/login
+    @json path /api/*
+    handle @upload {
+        request_body {
+            max_size 26MiB
+        }
+        reverse_proxy web:3000 {
+            header_up X-KnowFlow-Client-IP {remote_host}
+        }
+    }
+    handle @login {
+        request_body {
+            max_size 4KiB
+        }
+        reverse_proxy web:3000 {
+            header_up X-KnowFlow-Client-IP {remote_host}
+        }
+    }
+    handle @json {
+        request_body {
+            max_size 1MiB
+        }
+        reverse_proxy web:3000 {
+            header_up X-KnowFlow-Client-IP {remote_host}
+        }
+    }
+    handle {
+        request_body {
+            max_size 1MiB
+        }
+        reverse_proxy web:3000 {
+            header_up X-KnowFlow-Client-IP {remote_host}
+        }
+    }
 }

@@ -1,3 +1,4 @@
+import { reserveAiUsage } from "./release-controls";
 import OpenAI from "openai";
 
 function getClient() {
@@ -7,13 +8,15 @@ function getClient() {
   return new OpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
     baseURL: "https://api.deepseek.com/v1",
+    timeout: 30000, maxRetries: 0,
   });
 }
 
 export async function analyzeKnowledge(input: string) {
   const client = getClient();
+  await reserveAiUsage();
   const response = await client.chat.completions.create({
-    model: "deepseek-chat",
+    model: "deepseek-chat", max_tokens: 1800,
     messages: [
       {
         role: "system",
@@ -47,8 +50,9 @@ export async function analyzeKnowledge(input: string) {
 
 export async function analyzeMistake(content: string) {
   const client = getClient();
+  await reserveAiUsage();
   const response = await client.chat.completions.create({
-    model: "deepseek-chat",
+    model: "deepseek-chat", max_tokens: 1800,
     messages: [
       {
         role: "system",
@@ -82,8 +86,9 @@ export async function generateDailyReview(data: {
   reviewedNodes: { name: string; masteryLevel: number }[];
 }) {
   const client = getClient();
+  await reserveAiUsage();
   const response = await client.chat.completions.create({
-    model: "deepseek-chat",
+    model: "deepseek-chat", max_tokens: 1800,
     messages: [
       {
         role: "system",
@@ -115,8 +120,9 @@ export async function generateDailyReview(data: {
 
 export async function generateStudyAdvice(recentData: string) {
   const client = getClient();
+  await reserveAiUsage();
   const response = await client.chat.completions.create({
-    model: "deepseek-chat",
+    model: "deepseek-chat", max_tokens: 1800,
     messages: [
       {
         role: "system",

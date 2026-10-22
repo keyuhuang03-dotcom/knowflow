@@ -1,3 +1,4 @@
+import { FixtureRequest as Request } from "./auth-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
@@ -43,7 +44,7 @@ async function main() {
     if (mode === "hold") { events.emit("entered"); await new Promise<void>(resolve => { release = resolve; }); }
     if (mode === "failure" || (mode === "cardfailure" && !reading)) { res.statusCode = 500; res.end("fixture failure"); return; }
     res.setHeader("Content-Type", "application/json");
-    res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reading ? { rotation: 0, recognition: mode === "unclear" ? "uncertain" : "clear", questionCount: 1, question: "识别题目", studentWork: "", uncertainty: mode === "unclear" ? "积分上限不清" : "" } : { analysis: { ...emptyAnalysis, recognition: mode === "unclear" ? "uncertain" : "clear", question: "识别题目", coreConcept: "极限", errorReason: "模型试图断言粗心" }, recommendations: mode === "nomatch" ? [] : [{ nodeId: "limit", reason: "现有节点" }, { nodeId: "equivalent", reason: "另一知识点" }, { nodeId: "invented" }] }) } }] }));
+    res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(reading ? { rotation: 0, recognition: mode === "unclear" ? "uncertain" : "clear", questionCount: 1, question: "识别题目", studentWork: "", uncertainty: mode === "unclear" ? "积分上限不清" : "" } : { analysis: { ...emptyAnalysis, standardSolution: "1. 使用极限定义。2. 代入计算。", finalAnswer: "$1$", recognition: mode === "unclear" ? "uncertain" : "clear", question: "识别题目", coreConcept: "极限", errorReason: "模型试图断言粗心" }, recommendations: mode === "nomatch" ? [] : [{ nodeId: "limit", reason: "现有节点" }, { nodeId: "equivalent", reason: "另一知识点" }, { nodeId: "invented" }] }) } }] }));
   });
   provider.listen(0, "127.0.0.1"); await once(provider, "listening");
   const address = provider.address(); assert.ok(address && typeof address === "object");
@@ -65,9 +66,10 @@ async function main() {
     await worker(ai).exited; // processing occurs in another process, no browser involved
     const organized = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: first.id }, include: { linkedNodes: true } });
     assert.equal(organized.processingStatus, "complete"); assert.equal(organized.subjectId, "math"); assert.equal(organized.linkedNodes.length, 2);
-    assert.match(JSON.parse(organized.aiAnalysis!).errorReason, /无法判断/);
+    assert.equal(JSON.parse(organized.aiAnalysis!).errorReason, "");
+    assert.ok(JSON.parse(organized.aiAnalysis!).standardSolution);
     assert.equal(JSON.parse(organized.aiAnalysis!).diagnosisStatus, "unconfirmed");
-    const g = await (await graph()).json(); for (const n of g.nodes) assert.equal(n.mistakeCount, 1);
+    const g = await (await graph(new Request("http://localhost/api/knowledge"))).json(); for (const n of g.nodes) assert.equal(n.mistakeCount, 1);
 
     const multi = await captured(randomUUID(), true); await captured(multi.id, true);
     const multipleItem = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: multi.id } });
@@ -97,6 +99,22 @@ async function main() {
     assert.equal((await prisma.mistakeJob.findUniqueOrThrow({ where: { mistakeId: restart.id } })).attempts, 2);
     assert.equal((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: restart.id } })).processingStatus, "complete");
 
+    const reflection = await captured(); mode = "hold";
+    const reflectionEntered = once(events, "entered"); const reflectingWorker = worker(ai); await reflectionEntered;
+    const selfReport = { stickingPoint: "换元后不会改上下限", causes: ["计算或符号错误"], customCause: "漏写负号" };
+    assert.equal((await PATCH(request({ selfReport }), context(reflection.id))).status, 200);
+    const during = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } });
+    assert.equal(during.inputVersion, 0, "reflection does not cancel or restart processing");
+    mode = "clear"; release(); await reflectingWorker.exited;
+    const reflected = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } });
+    assert.equal(reflected.processingStatus, "complete");
+    assert.deepEqual(JSON.parse(reflected.aiAnalysis!).selfReport, selfReport, "in-flight AI preserves user reflection");
+    assert.equal((await PATCH(request({ selfReport: { ...selfReport, causes: [123] } }), context(reflection.id))).status, 400);
+    assert.equal((await PATCH(request({ analysis: { ...emptyAnalysis, question: "校对题干" } }), context(reflection.id))).status, 200);
+    assert.deepEqual(JSON.parse((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } })).aiAnalysis!).selfReport, selfReport);
+    mode = "clear"; await retry(request({}), context(reflection.id)); await worker(ai).exited;
+    assert.deepEqual(JSON.parse((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } })).aiAnalysis!).selfReport, selfReport, "reanalyzing preserves reflection");
+
     const editing = await captured(); mode = "hold"; const editingEntered = once(events, "entered"); const stale = worker(ai); await editingEntered;
     assert.equal((await PATCH(request({ analysis: { ...emptyAnalysis, question: "用户校对题目", coreConcept: "用户修改" } }), context(editing.id))).status, 200);
     release(); await stale.exited;
@@ -107,14 +125,14 @@ async function main() {
 
     const legacy = await saveConfirmedMistake({ id: randomUUID(), title: "历史兼容", subjectId: "math", imageUrl: first.url, nodeIds: ["limit", "equivalent"], confirmed: true, analysis: emptyAnalysis });
     assert.equal(legacy.linkedNodes.length, 2); assert.equal(legacy.processingStatus, "complete");
-    const exported = await (await backup()).json(); assert.equal(exported.version, 2);
+    const exported = await (await backup(new Request("http://localhost/api/backup"))).json(); assert.equal(exported.version, 2); exported.restoreConfirmed = true;
     assert.equal(exported.data.mistakes.find((m: { id: string }) => m.id === legacy.id).linkedNodeIds.length, 2);
     assert.equal((await restore(request(exported))).status, 200);
     assert.equal((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: legacy.id }, include: { linkedNodes: true } })).linkedNodes.length, 2);
     assert.equal(await prisma.mistakeJob.count(), exported.data.jobs.length);
     assert.equal(JSON.parse((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: multi.id } })).imageUrls!).length, 2, "backup restores every page");
     const invalid = structuredClone(exported); invalid.data.mistakes[0].linkedNodeIds = ["missing"];
-    assert.equal((await restore(request(invalid))).status, 500); assert.equal(await prisma.mistakeItem.count(), exported.data.mistakes.length);
+    assert.equal((await restore(request(invalid))).status, 400); assert.equal(await prisma.mistakeItem.count(), exported.data.mistakes.length);
     const v1 = structuredClone(exported); v1.version = 1; delete v1.data.jobs;
     for (const m of v1.data.mistakes) { delete m.linkedNodeIds; m.processingStatus = "complete"; }
     assert.equal((await restore(request(v1))).status, 200);

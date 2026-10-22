@@ -1,8 +1,11 @@
+import { AiBudgetExceeded } from "@/lib/release-controls";
+import { withAccess } from "@/lib/request-guard";
 import { generateStudyAdvice } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+async function GETHandler(_req: Request) {
+  void _req;
   try {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -32,9 +35,11 @@ export async function GET() {
     );
 
     return NextResponse.json({ advice });
-  } catch {
+  } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
     return NextResponse.json({
       advice: "继续按计划推进，保持节奏稳定。",
     });
   }
 }
+
+export const GET = withAccess(GETHandler);

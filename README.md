@@ -15,6 +15,7 @@ npm ci
 test -e prisma/dev.db || touch prisma/dev.db  # 默认SQLite路径；自定义路径先创建父目录和空文件
 npx prisma migrate deploy
 npm run db:bootstrap
+npm run auth:configure  # 输入账号、网页来源与密码；不回显密码
 npm run dev -- --hostname 0.0.0.0
 ```
 
@@ -27,7 +28,7 @@ npm run worker
 
 打开 http://localhost:3000 。手机通过同一网络中的电脑地址访问。Worker 必须独立运行，关闭浏览器不会停止已保存任务。`db:bootstrap` 只补默认用户与四个科目，不删除数据、不填充虚构教材节点；旧 `prisma/seed.ts` 是破坏性演示脚本，不用于更新。
 
-图片 AI 配置 `.env` 的 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`，需支持图片的 Chat Completions 接口；`DEEPSEEK_API_KEY` 供旧文本 AI 使用，不能代替图片配置。未配置 AI 仍可保存照片，任务会显示待配置/失败并可重试。不要提交真实 `.env`。
+图片 AI 配置 `.env` 的 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`，需支持图片的 Chat Completions 接口；`DEEPSEEK_API_KEY` 供旧文本 AI 使用，不能代替图片配置。未配置 AI 仍可保存照片，任务会显示待配置/失败并可重试。不要提交真实 `.env`。登录配置缺失时应用拒绝访问；账号、scrypt密码哈希与签名密钥由 `auth:configure` 写入，仅保存在服务器或本机配置。
 
 ## 检查与协作
 

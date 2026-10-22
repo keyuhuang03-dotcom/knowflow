@@ -45,6 +45,7 @@ npm run db:bootstrap
 安全初始化仅补默认用户和四个科目，不覆盖已有数据。旧 `prisma/seed.ts` 会清空学习数据，不用于日常开发与更新。
 
 ```bash
+npm run auth:configure  # 配置单人登录，密码不回显
 npm run dev
 # 另开终端，在 app/ 运行：
 npm run worker

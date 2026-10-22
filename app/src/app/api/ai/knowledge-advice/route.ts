@@ -1,8 +1,11 @@
+import { AiBudgetExceeded } from "@/lib/release-controls";
+import { reserveAiUsage } from "@/lib/release-controls";
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try {
     const { nodeId, mode } = await req.json();
     if (typeof nodeId !== "string" || !nodeId) {
@@ -40,6 +43,7 @@ export async function POST(req: NextRequest) {
     const client = new OpenAI({
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: "https://api.deepseek.com/v1",
+    timeout: 30000, maxRetries: 0,
     });
     const context = {
       知识点: node.name,
@@ -54,8 +58,9 @@ export async function POST(req: NextRequest) {
       错题: node.mistakeItems,
       笔记: node.notes.map((note) => ({ title: note.title, content: note.content.slice(0, 500) })),
     };
-    const response = await client.chat.completions.create({
-      model: "deepseek-chat",
+    await reserveAiUsage();
+  const response = await client.chat.completions.create({
+      model: "deepseek-chat", max_tokens: 1800,
       messages: [
         {
           role: "system",
@@ -72,8 +77,10 @@ export async function POST(req: NextRequest) {
       advice: response.choices[0]?.message?.content || "暂时无法生成建议。",
       fallback: false,
     });
-  } catch (error) {
+  } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
     console.error("Knowledge advice failed:", error);
     return NextResponse.json({ error: "生成知识点建议失败" }, { status: 500 });
   }
 }
+
+export const POST = withAccess(POSTHandler);

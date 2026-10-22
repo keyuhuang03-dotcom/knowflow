@@ -1,0 +1,7 @@
+.header { align-items: flex-start; }
+.headerActions { display: flex; flex-direction: column; align-items: stretch; gap: 12px; min-width: 0; max-width: 420px; }
+.headerActions > form { width: 100%; }
+.catalogTools { display: grid; gap: 20px; min-width: 0; }
+@media (max-width: 700px) {
+  .headerActions { max-width: 100%; }
+}

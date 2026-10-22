@@ -1,0 +1,2 @@
+ALTER TABLE "KnowledgeNode" ADD COLUMN "catalogArchived" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "KnowledgeNode" ADD COLUMN "catalogOrder" INTEGER NOT NULL DEFAULT 0;

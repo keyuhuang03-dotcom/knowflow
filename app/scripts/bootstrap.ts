@@ -4,7 +4,7 @@ loadEnvConfig(process.cwd());
 const prisma = new PrismaClient();
 async function main() {
   await prisma.$transaction(async tx => {
-    await tx.user.upsert({ where: { id: "default" }, update: {}, create: { id: "default", name: "学习者" } });
+    if (!await tx.user.count()) await tx.user.create({ data: { id: "default", name: "学习者" } });
     for (const [id, name, color] of [["math", "数学", "#C5E86C"], ["english", "英语", "#F9E6B8"], ["cs", "408", "#F6DFB9"], ["politics", "政治", "#E4DDF8"]]) {
       await tx.subject.upsert({ where: { id }, update: {}, create: { id, name, color } });
     }

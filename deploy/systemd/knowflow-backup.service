@@ -1,0 +1,13 @@
+[Unit]
+Description=KnowFlow consistent database and attachment backup
+Requires=docker.service
+After=docker.service
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/opt/kaoyan-workbench
+ExecStart=/bin/sh /opt/kaoyan-workbench/scripts/server-backup.sh
+TimeoutStartSec=30min
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

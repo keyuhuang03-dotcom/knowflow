@@ -1,8 +1,11 @@
+import { AiBudgetExceeded } from "@/lib/release-controls";
+import { withAccess } from "@/lib/request-guard";
 import { generateDailyReview } from "@/lib/ai";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
-export async function POST() {
+async function POSTHandler(_req: Request) {
+  void _req;
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -43,7 +46,7 @@ export async function POST() {
     let result;
     try {
       result = await generateDailyReview(data);
-    } catch {
+    } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
       const completed = data.tasks.completed;
       const total = data.tasks.total;
       result = {
@@ -85,8 +88,10 @@ export async function POST() {
         });
 
     return NextResponse.json(review);
-  } catch (error) {
+  } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
     console.error("Generate daily review failed:", error);
     return NextResponse.json({ error: "生成本日复盘失败" }, { status: 500 });
   }
 }
+
+export const POST = withAccess(POSTHandler);

@@ -1,0 +1,4 @@
+CREATE TABLE "AiUsageDay" (
+    "day" TEXT NOT NULL PRIMARY KEY,
+    "used" INTEGER NOT NULL DEFAULT 0
+);

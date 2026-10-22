@@ -1,9 +1,10 @@
+import { withAccess } from "@/lib/request-guard";
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
 const relationLabels = new Set(["related", "prerequisite", "confusable"]);
 
-export async function POST(req: NextRequest) {
+async function POSTHandler(req: NextRequest) {
   try {
     const { sourceId, targetId, label } = await req.json();
     if (typeof sourceId !== "string" || typeof targetId !== "string" || sourceId === targetId) {
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function DELETE(req: NextRequest) {
+async function DELETEHandler(req: NextRequest) {
   try {
     const { relationId } = await req.json();
     if (typeof relationId !== "string" || !relationId) {
@@ -46,3 +47,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: "删除关系失败" }, { status: 500 });
   }
 }
+
+export const POST = withAccess(POSTHandler);
+export const DELETE = withAccess(DELETEHandler);
