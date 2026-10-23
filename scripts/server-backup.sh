@@ -27,7 +27,12 @@ available=$(df -Pk data | awk 'NR==2 {print $4}')
 stopped=true
 docker compose stop web worker
 stamp="$(date -u +%Y%m%dT%H%M%SZ)-$$"
-archive="/data/backups/snapshot-$stamp.tar.gz"
+prefix=snapshot
+if [ "${KNOWFLOW_AUTOMATED_BACKUP:-0}" = 1 ]; then prefix=auto-snapshot; fi
+archive="/data/backups/$prefix-$stamp.tar.gz"
 docker compose run --rm --no-deps backup python3 /app/tools/export-cloud-data.py "$archive" --database /data/kaoyan.db --uploads /data/uploads --skill-data /data/mistake-skill
 docker compose run --rm --no-deps backup python3 /app/tools/verify-backup.py "$archive"
-echo "Verified server backup: data/backups/snapshot-$stamp.tar.gz"
+echo "Verified server backup: data/backups/$prefix-$stamp.tar.gz"
+if [ "${KNOWFLOW_AUTOMATED_BACKUP:-0}" = 1 ]; then
+  python3 scripts/prune-auto-backups.py data/backups
+fi

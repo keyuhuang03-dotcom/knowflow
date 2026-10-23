@@ -4,10 +4,10 @@ import sharp from "sharp";
 import { InputError, filterRecommendations, parseAnalysis, record, type Candidate } from "./mistake-contract";
 import { parseImagePages } from "./mistake-pages";
 import { readUploadedImage } from "./mistake-files";
-import { parseRecognition, recognitionOnly } from "./mistake-recognition";
+import { parseRecognition, recognitionOnly, type Recognition } from "./mistake-recognition";
 
 export class AIUnavailable extends Error {}
-export async function analyzeUploadedMistake(input: { imageUrl: string; imageUrls?: string[]; userWorkImageUrl: string; userWork: string; source: string; subject: string; textbook: string; candidates: Candidate[] }) {
+export async function analyzeUploadedMistake(input: { imageUrl: string; imageUrls?: string[]; userWorkImageUrl: string; userWork: string; source: string; subject: string; textbook: string; candidates: Candidate[]; recognized?: Recognition; onRecognized?: (result: Recognition) => Promise<void> }) {
   if (!process.env.MISTAKE_AI_API_KEY || !process.env.MISTAKE_AI_MODEL) throw new AIUnavailable("尚未配置图片分析服务。原图仍保留，可稍后重试。");
   const model = process.env.MISTAKE_AI_MODEL;
   const started = Date.now();
@@ -37,6 +37,8 @@ questionCount是原题图片中可辨认的独立题目数量（不要把过程�
       ] },
     ],
   }, { signal });
+  let recognized = input.recognized;
+  if (!recognized) {
   let ocrResponse = await read(question.bytes);
   const orientation = record(JSON.parse(ocrResponse.choices[0]?.message.content || "{}"));
   if (Number(orientation.questionCount) <= 1 && [90, 180, 270].includes(Number(orientation.rotation))) {
@@ -45,7 +47,9 @@ questionCount是原题图片中可辨认的独立题目数量（不要把过程�
     ocrResponse = await read(upright);
   }
   if (ocrResponse.choices[0]?.finish_reason === "length") throw new Error("Recognition response truncated");
-  const recognized = parseRecognition(JSON.parse(ocrResponse.choices[0]?.message.content || "{}"));
+  recognized = parseRecognition(JSON.parse(ocrResponse.choices[0]?.message.content || "{}"));
+  if (recognized.recognition === "clear") await input.onRecognized?.(recognized);
+  }
   const recognitionMs = Date.now() - started;
   if (recognized.recognition !== "clear") {
     console.info(`[mistake-ai] recognition ${recognitionMs}ms; needs_information; analysis skipped`);
@@ -62,7 +66,7 @@ errorOptions给出最多4个与本题有关的中性自查选项（例如换元�
 只从candidates推荐最多三个已有节点，无匹配留空。严格输出JSON：{"analysis":{"standardSolution":"分步标准解答","finalAnswer":"答案","coreConcept":"核心考点","stickingPoint":"","errorReason":"","errorOptions":["可选自查项"],"method":"关键方法","reviewTip":"适用特征","nextCheck":"检查提醒","recognition":"clear或uncertain","uncertainty":"需核对的题干条件，无则空"},"recommendations":[{"nodeId":"已有id","reason":"依据"}]}` },
       { role: "user", content: JSON.stringify({ question: recognized.question, source: input.source, subject: input.subject, textbook: input.textbook, candidates: input.candidates }) },
     ],
-  }, { signal });
+  }, { signal: AbortSignal.timeout(30000) });
   if (response.choices[0]?.finish_reason === "length") throw new Error("Analysis response truncated");
   const raw = record(JSON.parse(response.choices[0]?.message.content || "{}"));
   if (!raw.analysis || !Array.isArray(raw.recommendations)) throw new Error("Invalid AI response");
@@ -71,8 +75,7 @@ errorOptions给出最多4个与本题有关的中性自查选项（例如换元�
   if (analysis.recognition === "clear" && (!analysis.standardSolution || !analysis.finalAnswer)) throw new Error("Incomplete standard solution");
   console.info(`[mistake-ai] recognition ${recognitionMs}ms; total ${Date.now() - started}ms`);
   return { analysis: { ...analysis, origin: "ai" as const, diagnosisStatus: "unconfirmed" as const }, recommendations: analysis.recognition === "clear" ? filterRecommendations(raw.recommendations, input.candidates) : [] };
-  } catch {
-    console.info(`[mistake-ai] recognition ${recognitionMs}ms; card pending; total ${Date.now() - started}ms`);
-    return { analysis: { ...recognitionOnly({ ...recognized, uncertainty: "题干已识别，但复习卡片生成暂未完成。识别结果与照片已保留，可稍后重新整理。" }), recognition: "clear" as const, cardPending: true }, recommendations: [] };
+  } catch (cause) {
+    throw new Error("标准解答生成暂时失败", { cause });
   }
 }

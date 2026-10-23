@@ -38,3 +38,10 @@ test("historical and malformed confirmation flags remain unconfirmed", () => {
   assert.equal(parseAnalysis({ diagnosisStatus: "confirmed" }).diagnosisStatus, "confirmed");
   assert.equal(parseAnalysis({ recognition: "invented" }).recognition, "uncertain");
 });
+
+ test("reflection summary prefers user data and respects clearing it", async () => {
+  const { reflectionSummary } = await import("../src/lib/mistake-contract");
+  assert.equal(reflectionSummary(null, "旧错因"), "旧错因");
+  assert.equal(reflectionSummary(JSON.stringify({ selfReport: { causes: ["计算错误"], customCause: "漏负号", stickingPoint: "换元" } }), "旧错因"), "计算错误；漏负号；换元");
+  assert.equal(reflectionSummary(JSON.stringify({ selfReport: { causes: [], customCause: "", stickingPoint: "" } }), "旧错因"), "");
+});

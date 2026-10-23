@@ -104,3 +104,9 @@ export function nodePath(node: { id: string; name: string; parentId: string | nu
   const partName = Object.values(subjectParts).flat().find(p => p.id === node.subjectPart)?.name;
   return [subject, ...(partName && !subject.includes(partName) ? [partName] : []), ...names].join(" / ");
 }
+
+export function reflectionSummary(value: string | null, legacyReason: string | null): string {
+  const report = readAnalysis(value).selfReport;
+  if (!report) return legacyReason || "";
+  return [...report.causes, report.customCause, report.stickingPoint].filter(Boolean).join("；");
+}

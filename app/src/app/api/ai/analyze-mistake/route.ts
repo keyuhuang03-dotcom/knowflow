@@ -1,3 +1,4 @@
+import { textbookForNode, textbookSummary } from "@/lib/subject-parts";
 import { AiBudgetExceeded } from "@/lib/release-controls";
 import { withAccess } from "@/lib/request-guard";
 import { NextResponse } from "next/server";
@@ -12,11 +13,11 @@ async function POSTHandler(request: Request) {
     const body = record(await request.json());
     const subjectId = text(body.subjectId, "科目", 100, true);
     const subject = await prisma.subject.findUnique({ where: { id: subjectId }, include: { knowledgeNodes: { where: { catalogArchived: false }, include: { chapter: true } } } });
-    if (!subject?.textbookTitle || !subject.knowledgeNodes.length) throw new InputError("请先确认主教材和知识目录");
+    if (!subject || !subject.knowledgeNodes.some(n => textbookForNode(subject, n.subjectPart))) throw new InputError("请先确认主教材和知识目录");
     return NextResponse.json(await analyzeUploadedMistake({
       imageUrl: text(body.imageUrl, "原题图片", 250, true), imageUrls: parseImagePages(body.imageUrls, text(body.imageUrl, "原题图片", 250, true)), userWorkImageUrl: text(body.userWorkImageUrl, "解题图片", 250),
-      userWork: text(body.userWork, "解题过程"), source: text(body.source, "来源", 500), subject: subject.name, textbook: subject.textbookTitle,
-      candidates: subject.knowledgeNodes.map(n => ({ id: n.id, name: n.name, path: nodePath(n, subject.knowledgeNodes, subject.name) })),
+      userWork: text(body.userWork, "解题过程"), source: text(body.source, "来源", 500), subject: subject.name, textbook: textbookSummary(subject),
+      candidates: subject.knowledgeNodes.filter(n => textbookForNode(subject, n.subjectPart)).map(n => ({ id: n.id, name: n.name, path: nodePath(n, subject.knowledgeNodes, subject.name) })),
     }));
   } catch (error) { if (error instanceof AiBudgetExceeded) throw error;
     const expected = error instanceof InputError || error instanceof AIUnavailable;

@@ -4,6 +4,7 @@ Requires=docker.service
 After=docker.service
 [Service]
 Type=oneshot
+Environment=KNOWFLOW_AUTOMATED_BACKUP=1
 User=root
 WorkingDirectory=/opt/kaoyan-workbench
 ExecStart=/bin/sh /opt/kaoyan-workbench/scripts/server-backup.sh

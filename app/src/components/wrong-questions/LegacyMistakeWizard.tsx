@@ -66,7 +66,7 @@ function Wizard({ subjects, initialSubject, initialNode }: { subjects: Catalog; 
   async function analyze() {
     if (inFlight.current) return;
     if (Object.values(pending).some(Boolean)) { setError("请先上传或丢弃待处理图片，再继续。"); return; }
-    if (!subject?.textbookTitle || !subject.nodes.length) { setError("请先在科目知识库确认主教材与知识目录。"); return; }
+    if ((!subject?.textbookTitle && !subject?.parts.some(p => p.textbookTitle)) || !subject.nodes.length) { setError("请先在科目知识库确认主教材与知识目录。"); return; }
     if (!draft.imageUrl) { setError("请先上传或拍摄原题。"); return; }
     inFlight.current = true; setBusy("正在识别题目和复习线索…"); setError(""); go("analysis");
     try {
@@ -106,7 +106,7 @@ function Wizard({ subjects, initialSubject, initialNode }: { subjects: Catalog; 
     <fieldset disabled={Boolean(busy)} className="wb-reset-fieldset">
     {activeStep === "upload" ? <div className="wb-columns"><section className="wb-panel wb-stack">
       <label className="wb-field">所属科目<select value={draft.subjectId} onChange={e => inputChange({ subjectId: e.target.value })}>{subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select></label>
-      {(!subject?.textbookTitle || !subject.nodes.length) && <p className="wb-notice">请先<Link className="wb-text-link" href={`/knowledge/${subject?.id || ""}`}>确认主教材与知识目录</Link>，再开始分析。</p>}
+      {((!subject?.textbookTitle && !subject?.parts.some(p => p.textbookTitle)) || !subject.nodes.length) && <p className="wb-notice">请先<Link className="wb-text-link" href={`/knowledge/${subject?.id || ""}`}>确认主教材与知识目录</Link>，再开始分析。</p>}
       <div className="wb-upload">{draft.imageUrl ? <img src={draft.imageUrl} alt="已上传的原题" className="wb-original" /> : <><Upload size={34} strokeWidth={1.4} /><h2>放入一道值得再看的题</h2><p className="wb-muted">JPG、PNG、WebP · 本地压缩后上传</p></>}
         <ImageIntake key={`${draft.id}:imageUrl`} storageId={`${draft.id}:imageUrl`} label="原题" onBusy={setBusy} onUploaded={url => inputChange({ imageUrl: url })} onPending={value => setPending(p => ({ ...p, imageUrl: value }))} />
       </div>

@@ -11,3 +11,10 @@ export function validateSubjectPart(subjectId: string, part: unknown) {
 export function partBooks(value: string | null | undefined): Record<string,string> {
   try {const v=JSON.parse(value || '{}');return v && typeof v==='object' && !Array.isArray(v) ? Object.fromEntries(Object.entries(v).filter(([,v])=>typeof v==='string')) as Record<string,string> : {};}catch{return {};}
 }
+
+export function textbookForNode(subject: { textbookTitle: string | null; partTextbooks: string | null }, part: string | null) {
+  return part ? partBooks(subject.partTextbooks)[part]?.trim() || null : subject.textbookTitle?.trim() || null;
+}
+export function textbookSummary(subject: { textbookTitle: string | null; partTextbooks: string | null }) {
+  return [...new Set([subject.textbookTitle, ...Object.values(partBooks(subject.partTextbooks))].filter(Boolean))].join("；");
+}

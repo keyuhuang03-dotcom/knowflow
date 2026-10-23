@@ -1,3 +1,4 @@
+import { textbookForNode, textbookSummary } from "./subject-parts";
 import { prisma } from "./prisma";
 import { InputError, parseAnalysis, parseNodeIds, record, text } from "./mistake-contract";
 import { parseImagePages, readImagePages } from "./mistake-pages";
@@ -24,8 +25,9 @@ export async function saveConfirmedMistake(value: unknown) {
   };
   return prisma.$transaction(async tx => {
     const subject = await tx.subject.findUnique({ where: { id: subjectId } });
-    if (!subject?.textbookTitle) throw new InputError("请先在科目知识库确认主教材和知识目录");
-    const nodes = await tx.knowledgeNode.findMany({ where: { id: { in: nodeIds }, subjectId } });
+    if (!subject || !textbookSummary(subject)) throw new InputError("请先在科目知识库确认主教材和知识目录");
+    const nodes = await tx.knowledgeNode.findMany({ where: { id: { in: nodeIds }, subjectId, catalogArchived: false } });
+    if (nodes.some(n => !textbookForNode(subject, n.subjectPart))) throw new InputError("所选知识点尚未配置教材");
     if (nodes.length !== nodeIds.length) throw new InputError("知识点已变更或不属于当前科目，请重新选择");
     const existing = await tx.mistakeItem.findUnique({ where: { id }, include: mistakeInclude });
     // A stable draft UUID makes retries after a lost response idempotent.

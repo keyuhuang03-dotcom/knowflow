@@ -1,3 +1,5 @@
+import { textbookForNode, textbookSummary } from "./subject-parts";
+import { parseRecognition, recognitionOnly } from "./mistake-recognition";
 import { AiBudgetExceeded } from "./release-controls";
 import { randomUUID } from "node:crypto";
 import type { Prisma } from "@prisma/client";
@@ -42,8 +44,29 @@ export async function runWorkerOnce(owner = randomUUID(), leaseMs = 90000) {
   try {
     const item = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: job.mistakeId }, include: { subject: true, linkedNodes: true } });
     if (item.inputVersion !== job.inputVersion) return true;
-    const nodes = await prisma.knowledgeNode.findMany({ where: { catalogArchived: false, ...(item.subjectId ? { subjectId: item.subjectId } : {}), subject: { textbookTitle: { not: null } } }, include: { chapter: true, subject: true } });
-    const result = await analyzeUploadedMistake({ imageUrl: item.imageUrl || "", imageUrls: readImagePages(item.imageUrls, item.imageUrl), userWorkImageUrl: item.userWorkImageUrl || "", userWork: item.userWork || "", source: item.source || "", subject: item.subject?.name || "未确定", textbook: item.subject?.textbookTitle || "未设置；只整理内容，不创建教材节点", candidates: nodes.map(n => ({ id: n.id, name: n.name, path: nodePath(n, nodes.filter(x => x.subjectId === n.subjectId), n.subject.name) })) });
+    const allNodes = await prisma.knowledgeNode.findMany({ where: { catalogArchived: false, ...(item.subjectId ? { subjectId: item.subjectId } : {}) }, include: { chapter: true, subject: true } });
+    const nodes = allNodes.filter(n => textbookForNode(n.subject, n.subjectPart));
+    let checkpoint;
+    try {
+      const saved = JSON.parse(item.aiAnalysis || "{}").recognitionCheckpoint;
+      if (saved?.inputVersion === job.inputVersion) {
+        const parsed = parseRecognition({ ...saved.result, rotation: 0 });
+        if (parsed.recognition === "clear") checkpoint = parsed;
+      }
+    } catch { /* Invalid or older checkpoints are safely re-recognized. */ }
+    const onRecognized = async (recognized: ReturnType<typeof parseRecognition>) => {
+      await prisma.$transaction(async tx => {
+        const lease = await tx.workerLease.findUnique({ where: { id: WORKER_LEASE_ID } });
+        const activeJob = await tx.mistakeJob.findUnique({ where: { id: job.id } });
+        const current = await tx.mistakeItem.findUnique({ where: { id: item.id } });
+        if (lease?.owner !== owner || lease.expiresAt <= new Date() || activeJob?.owner !== owner || activeJob.status !== "running" || activeJob.inputVersion !== job.inputVersion || current?.inputVersion !== job.inputVersion) throw new Error("Task changed");
+        await tx.mistakeItem.update({ where: { id: item.id }, data: {
+          content: recognized.question,
+          aiAnalysis: JSON.stringify({ ...preserveSelfReport({ ...recognitionOnly(recognized), recognition: "clear", cardPending: true }, current.aiAnalysis), recognitionCheckpoint: { inputVersion: job.inputVersion, result: recognized } }),
+        } });
+      });
+    };
+    const result = await analyzeUploadedMistake({ recognized: checkpoint, onRecognized, imageUrl: item.imageUrl || "", imageUrls: readImagePages(item.imageUrls, item.imageUrl), userWorkImageUrl: item.userWorkImageUrl || "", userWork: item.userWork || "", source: item.source || "", subject: item.subject?.name || "未确定", textbook: (item.subject ? textbookSummary(item.subject) : "") || "未设置；只整理内容，不创建教材节点", candidates: nodes.map(n => ({ id: n.id, name: n.name, path: nodePath(n, nodes.filter(x => x.subjectId === n.subjectId), n.subject.name) })) });
     const chosen = nodes.filter(n => result.recommendations.some(r => r.nodeId === n.id));
     // Ambiguous cross-subject matches remain unlinked. No invented subject/node.
     const subjects = new Set(chosen.map(n => n.subjectId));

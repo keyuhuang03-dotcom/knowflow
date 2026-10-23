@@ -50,8 +50,8 @@ async function main() {
   const address = provider.address(); assert.ok(address && typeof address === "object");
   const ai = { MISTAKE_AI_API_KEY: "fixture-only", MISTAKE_AI_MODEL: "fixture", MISTAKE_AI_BASE_URL: `http://127.0.0.1:${address.port}/v1` };
   try {
-    await prisma.subject.create({ data: { id: "math", name: "数学", textbookTitle: "测试教材" } });
-    await prisma.knowledgeNode.createMany({ data: [{ id: "limit", subjectId: "math", name: "极限" }, { id: "equivalent", subjectId: "math", name: "等价无穷小" }] });
+    await prisma.subject.create({ data: { id: "math", name: "数学", textbookTitle: null, partTextbooks: JSON.stringify({ calculus: "测试高数教材" }) } });
+    await prisma.knowledgeNode.createMany({ data: [{ id: "limit", subjectId: "math", subjectPart: "calculus", name: "极限" }, { id: "equivalent", subjectId: "math", subjectPart: "calculus", name: "等价无穷小" }] });
     const first = await captured();
     await captured(first.id); // identical image + UUID retry, including a lost response
     assert.equal(await prisma.mistakeItem.count(), 1); assert.equal(await prisma.mistakeJob.count(), 1); assert.equal((await readdir(process.env.UPLOAD_ROOT!)).length, 1);
@@ -83,9 +83,15 @@ async function main() {
 
     const partial = await captured(); mode = "cardfailure"; await worker(ai).exited;
     const partialItem = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: partial.id } });
-    assert.equal(partialItem.processingStatus, "needs_information");
+    assert.equal(partialItem.processingStatus, "queued");
     assert.equal(partialItem.content, "识别题目", "recognition survives downstream analysis failure");
     assert.equal(JSON.parse(partialItem.aiAnalysis!).cardPending, true);
+    const retryCalls = calls;
+    await prisma.mistakeJob.update({ where: { mistakeId: partial.id }, data: { availableAt: new Date(0) } });
+    mode = "clear";
+    await worker(ai).exited;
+    assert.equal(calls - retryCalls, 1, "new worker resumes persisted recognition without another OCR call");
+    assert.equal((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: partial.id } })).processingStatus, "complete");
     const failing = await captured(); mode = "failure"; const beforeCalls = calls;
     for (let i = 0; i < 3; i++) { await worker(ai).exited; await prisma.mistakeJob.updateMany({ where: { mistakeId: failing.id, status: "queued" }, data: { availableAt: new Date(0) } }); }
     assert.equal(calls - beforeCalls, 3); await worker(ai).exited; assert.equal(calls - beforeCalls, 3);
