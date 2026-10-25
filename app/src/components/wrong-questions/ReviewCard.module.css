@@ -6,3 +6,15 @@
 .card details[open] > :not(summary) { margin-block: 8px; }
 .card .more > summary { font-size: 13px; color: #69765e; }
 .more h3 { font-size: 13px; margin: 12px 0 6px; }
+.card { gap: 20px; }
+.solution { min-width: 0; line-height: 2.1; }
+.solution > h3 { margin: 0 0 18px; font-size: 16px; }
+.steps { list-style: none; padding: 0; margin: 0; counter-reset: solution; display: grid; gap: 24px; }
+.steps > li { counter-increment: solution; position: relative; padding: 0 0 22px 38px; border-bottom: 1px solid #e5eadf; min-width: 0; }
+.steps > li::before { content: counter(solution); position: absolute; left: 0; top: 5px; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #edf4df; color: #536b32; font: 600 13px/1 system-ui; }
+.steps > li:last-child { border: 0; padding-bottom: 0; }
+.answer { margin-top: 28px; padding: 20px 22px; border: 1px solid #dce5ce; border-radius: 16px; background: #f3f7eb; }
+.answer h3 { margin: 0 0 12px; color: #536b32; font-size: 14px; }
+.solution :global(.wb-math-inline) { margin-block: 5px; }
+.solution :global(.wb-math-block) { margin-block: 12px; padding-block: 12px; }
+@media (max-width: 600px) { .steps { gap: 20px; } .steps > li { padding-left: 32px; } .answer { padding: 16px; } }

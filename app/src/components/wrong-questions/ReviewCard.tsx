@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import type { Analysis } from "@/lib/mistake-contract";
 import AnalysisFields from "./AnalysisFields";
 import MathText from "./MathText";
+import { solutionSteps } from "@/lib/solution-steps";
 import styles from "./ReviewCard.module.css";
 
 export default function ReviewCard({ analysis, children }: { analysis: Analysis; children?: ReactNode }) {
@@ -12,7 +13,7 @@ export default function ReviewCard({ analysis, children }: { analysis: Analysis;
     <MathText>{analysis.question || "请查看原图。"}</MathText>
     <p className={styles.status}>{pending ? "整理中 · 题目已保存" : uncertain ? "题干待核对 · 暂不展示解法" : "标准解答 · 可校对"}</p>
     {pending || uncertain ? <div className="wb-notice"><MathText>{analysis.uncertainty || "关键条件尚未可靠识别，请对照原图。"}</MathText></div> : <>
-      {analysis.standardSolution ? <section><h3>标准解答</h3><MathText>{analysis.standardSolution}</MathText>{analysis.finalAnswer && <><h3>答案</h3><MathText>{analysis.finalAnswer}</MathText></>}</section> : <p className="wb-muted">这是历史卡片，尚无完整标准解答。可点击重新整理生成。</p>}
+      {analysis.standardSolution ? <section className={styles.solution}><h3>标准解答</h3>{solutionSteps(analysis.standardSolution).length > 1 ? <ol className={styles.steps}>{solutionSteps(analysis.standardSolution).map((step, i) => <li key={i}><MathText>{step}</MathText></li>)}</ol> : <MathText>{analysis.standardSolution}</MathText>}{analysis.finalAnswer && <section className={styles.answer}><h3>答案</h3><MathText>{analysis.finalAnswer}</MathText></section>}</section> : <p className="wb-muted">这是历史卡片，尚无完整标准解答。可点击重新整理生成。</p>}
       <details><summary>方法与提醒</summary><MathText>{analysis.method}</MathText><MathText>{analysis.reviewTip}</MathText><MathText>{analysis.nextCheck || ""}</MathText></details>
     </>}
     <details className={styles.more}><summary>{analysis.uncertainty && !pending && !uncertain ? "更多详情 · 有待核对项" : "更多详情"}</summary>

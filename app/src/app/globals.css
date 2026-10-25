@@ -295,3 +295,23 @@ body {
 .wb-math-inline { display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; }
 .wb-math-block { display: block; max-width: 100%; overflow-x: auto; padding-block: 8px; }
 .wb-review-card summary { cursor: pointer; padding-block: 10px; font-weight: 600; }
+
+/* Review reading: leave room for long titles, equations and self-check options. */
+.kf-mistake-detail .wb-header { align-items: flex-start; }
+.kf-mistake-detail .wb-header > div { min-width: 0; flex: 1; }
+.kf-mistake-detail .wb-header h1 { font-size: clamp(24px, 2.5vw, 36px); line-height: 1.5; margin-bottom: 20px; }
+.kf-mistake-detail .wb-header > button { flex-shrink: 0; white-space: nowrap; }
+.kf-mistake-detail .wb-linked-paths { gap: 10px; }
+.kf-mistake-detail .wb-linked-paths a { max-width: 100%; line-height: 1.8; }
+.kf-reflection-options { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 16px; }
+.kf-reflection-options .wb-choice { padding: 16px 18px; line-height: 1.9; border-radius: 16px; }
+.kf-reflection-options .wb-choice > .wb-math-text { min-width: 0; flex: 1; }
+.kf-reflection-options .wb-choice:has(input:checked) { border-color: #a9bf7c; background: #f0f6e6; }
+.kf-reflection-options .wb-choice input { margin-top: 7px; }
+.kf-mistake-detail .wb-two-columns { align-items: start; }
+@media (min-width: 1100px) { .kf-mistake-detail .wb-two-columns { grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 28px; } }
+@media (min-width: 360px) {
+  .kf-reflection-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kf-reflection-options .kf-choice-wide { grid-column: 1 / -1; }
+  .kf-reflection-options .wb-choice { padding: 14px; gap: 10px; }
+}

@@ -15,3 +15,9 @@ test("untrusted math cannot introduce executable links and invalid formula text 
   assert.doesNotMatch(html, /<a\b|<script\b|onerror=/);
   assert.match(html, /unknownCommand/);
 });
+test("heading and checkbox math uses a phrasing wrapper without exposing delimiters", () => {
+  const html = renderToStaticMarkup(MathText({ inline: true, children: "缺 $x$；令 $p=y'$ 后写成 $p\\dfrac{dp}{dy}$" }));
+  assert.ok(html.startsWith('<span'));
+  assert.doesNotMatch(html, /<div|\$/);
+  assert.match(html, /<mfrac>/);
+});

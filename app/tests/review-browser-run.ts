@@ -15,7 +15,10 @@ async function main(){
  execFileSync(process.execPath,['node_modules/prisma/build/index.js','migrate','deploy'],{env,stdio:'pipe'});
  execFileSync(process.execPath,['--import','tsx','scripts/bootstrap.ts'],{env,stdio:'pipe'});
  const db=new PrismaClient({datasourceUrl:env.DATABASE_URL});
- const item=await db.mistakeItem.create({data:{title:'标准解答测试',content:'题目',processingStatus:'complete',aiAnalysis:JSON.stringify({version:1,origin:'ai',recognition:'clear',question:'求导 $x^2$。',standardSolution:'1. 使用幂函数求导公式。2. 得到 $2x$。',finalAnswer:'$2x$',errorOptions:['忘记乘指数']})}});
+ const item=await db.mistakeItem.create({data:{title:'可降阶的高阶微分方程（缺 $x$ 型）；二阶变系数方程降阶',content:'题目',processingStatus:'complete',aiAnalysis:JSON.stringify({version:1,origin:'ai',recognition:'clear',question:String.raw`求方程 $y''+\dfrac{2}{1-y}(y')^2=0$ 的通解（$y$ 不是恒常数）。`,standardSolution:String.raw`1. 令 $p=y'$，视 $p$ 为 $y$ 的函数，则 $y''=p\dfrac{dp}{dy}$。代入原方程得 $p\dfrac{dp}{dy}+\dfrac{2}{1-y}p^2=0$。
+2. 分离变量并积分：$\dfrac{dp}{p}=\dfrac{2}{y-1}dy$，得 $p=C_1(y-1)^2$。
+3. 回代并积分，得 $y=1-\dfrac{1}{C_1x+C_2}$。
+4. 核对原题条件与定义域。`,finalAnswer:String.raw`$y=1-\dfrac{1}{C_1x+C_2}$，其中 $C_1\ne0$。`,errorOptions:['忘记乘指数',String.raw`令 $p=y'$ 后未把 $y''$ 写成 $p\dfrac{dp}{dy}$`,String.raw`除以 $p$ 时未说明 $p\not\equiv 0$ 的依据`]})}});
  const server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','--hostname','127.0.0.1','--port','3107'],{env,stdio:['ignore','pipe','pipe']});
  let output='';server.stdout.on('data',b=>output+=b);server.stderr.on('data',b=>output+=b);
  try{
@@ -27,7 +30,11 @@ async function main(){
    assert.equal((await context.request.post(base+'/api/auth/login',{headers:{Origin:base},data:{username:'fixture',password}})).status(),200);
    await p.goto(base+'/wrong-questions/'+item.id);
    await p.getByRole('heading',{name:'标准解答',exact:true}).waitFor();
-   assert.ok(await p.locator('math').count()>0);
+   assert.ok(await p.locator('h1 math').count()>0);
+   assert.equal(await p.locator('.kf-reflection-options .wb-choice math').count(),5);
+   assert.equal(await p.locator('ol > li').count(),4);
+   assert.ok(!(await p.locator('h1').innerText()).includes('$'));
+   assert.ok(!(await p.locator('.kf-reflection-options').innerText()).includes('$'));
    assert.equal(await p.getByRole('button',{name:'生成完整诊断',exact:true}).count(),0);
    assert.equal(await p.getByRole('checkbox',{checked:true}).count(),0);
    await p.getByRole('textbox',{name:'我的卡点（可选）',exact:true}).fill('不知道怎么求导');
@@ -42,7 +49,7 @@ async function main(){
    assert.equal(await db.mistakeJob.count(),0);
    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await p.screenshot({path:'/private/tmp/knowflow-review-mobile.png',fullPage:true});
-   await p.setViewportSize({width:1440,height:900});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
+   await p.setViewportSize({width:1440,height:900});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:'/private/tmp/knowflow-review-desktop.png',fullPage:true});assert.deepEqual(errors,[]);
    console.log('PASS standard solution/math, unselected suggestions, reflection save/reload, no AI job, mobile/desktop overflow');
   }finally{await browser.close();}
  }finally{server.kill('SIGTERM');await once(server,'exit');await db.$disconnect();}
