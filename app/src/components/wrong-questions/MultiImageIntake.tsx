@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element -- Local blob preview. */
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type KeyboardEvent } from "react";
 import { pendingImages, prepareImage } from "@/lib/mistake-image";
 type Result = { mistakeId?: string; url: string; urls?: string[] };
 export default function MultiImageIntake({ storageId, label, onUploaded, onPending, onBusy, uploadMetadata, maxPages = 6 }: { storageId: string; label: string; onUploaded: (urls: string[], result: Result) => void | Promise<void>; onPending: (pending: boolean) => void; onBusy: (message: string) => void; uploadMetadata?: () => Record<string, unknown>; maxPages?: number }) {
@@ -12,6 +12,31 @@ export default function MultiImageIntake({ storageId, label, onUploaded, onPendi
   const [message, setMessage] = useState("");
   const [warning, setWarning] = useState("");
   const previewRef = useRef<HTMLImageElement>(null);
+  const drag = useRef<{ id: number; x: number; y: number; edges: number[]; sides: number[]; width: number; height: number } | null>(null);
+  function startCrop(event: PointerEvent<HTMLButtonElement>, sides: number[]) {
+    if (!event.isPrimary || event.button !== 0 || busy) return;
+    const rect = previewRef.current?.getBoundingClientRect();
+    if (!rect?.width || !rect.height) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, edges: [...edges], sides, width: rect.width, height: rect.height };
+  }
+  function moveCrop(event: PointerEvent<HTMLButtonElement>) {
+    const origin = drag.current;
+    if (!origin || origin.id !== event.pointerId) return;
+    const next = [...origin.edges];
+    for (const side of origin.sides) {
+      const delta = side % 2 === 0 ? (event.clientX - origin.x) / origin.width : (event.clientY - origin.y) / origin.height;
+      next[side] = Math.max(0, Math.min(95 - origin.edges[(side + 2) % 4], origin.edges[side] + delta * (side < 2 ? 100 : -100)));
+    }
+    setEdges(next);
+  }
+  function keyCrop(event: KeyboardEvent<HTMLButtonElement>, sides: number[]) {
+    const direction = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[event.key];
+    if (!direction) return;
+    event.preventDefault();
+    setEdges(previous => previous.map((value, side) => sides.includes(side) ? Math.max(0, Math.min(95 - previous[(side + 2) % 4], value + direction[side % 2] * (side < 2 ? 1 : -1) * (event.shiftKey ? 5 : 1))) : value));
+  }
   const lock = useRef(false);
   const callbacks = useRef({ onUploaded, onPending, onBusy, uploadMetadata });
   useEffect(() => { callbacks.current = { onUploaded, onPending, onBusy, uploadMetadata }; });
@@ -80,10 +105,12 @@ export default function MultiImageIntake({ storageId, label, onUploaded, onPendi
     <div className="wb-actions"><label className="btn btn-secondary">{label} · 相册多选<input className="sr-only" type="file" accept="image/*" multiple disabled={pages.length >= maxPages || cropping} onChange={e => { void select(Array.from(e.target.files || [])); e.target.value = ""; }} /></label><label className="btn btn-secondary">拍下一页<input className="sr-only" type="file" accept="image/*" capture="environment" disabled={pages.length >= maxPages || cropping} onChange={e => { void select(Array.from(e.target.files || [])); e.target.value = ""; }} /></label></div>
     <p className="wb-small wb-muted">本批最多 {maxPages} 页，可相册多选或连续拍照；最长边2400px，每页可单独旋转、裁剪。</p>
     {pages.length > 0 && <><div className="wb-actions" aria-label="页面顺序">{pages.map((_, i) => <button type="button" key={i} className={i === active ? "btn btn-primary" : "btn btn-secondary"} aria-pressed={i === active} disabled={cropping} onClick={() => { setActive(i); setEdges([0, 0, 0, 0]); }}>第 {i + 1} 页</button>)}</div>
-    <div className="wb-actions"><button type="button" className="btn btn-secondary" aria-expanded={cropOpen} onClick={() => setCropOpen(!cropOpen)}>{cropOpen ? "收起裁剪" : "裁剪当前页"}</button><button type="button" className="btn btn-secondary" disabled={cropping} onClick={() => void edit(90)}>旋转 90°</button><button type="button" className="btn btn-secondary" disabled={active === 0 || cropping} onClick={() => move(-1)}>前移一页</button><button type="button" className="btn btn-secondary" disabled={active === pages.length - 1 || cropping} onClick={() => move(1)}>后移一页</button><button type="button" className="btn btn-secondary" disabled={cropping} onClick={() => void changePages(pages.filter((_, i) => i !== active), Math.max(0, active - 1))}>移除当前页</button></div>
-    <div className="wb-crop-preview"><img ref={previewRef} alt={`第${active + 1}页及裁剪范围`} /><div style={{ left: `${edges[0]}%`, top: `${edges[1]}%`, right: `${edges[2]}%`, bottom: `${edges[3]}%` }} /></div>
+    <div className="wb-actions"><button type="button" className="btn btn-secondary" aria-expanded={cropOpen} onClick={() => { setCropOpen(!cropOpen); setEdges([0, 0, 0, 0]); }}>{cropOpen ? "收起裁剪" : "裁剪当前页"}</button><button type="button" className="btn btn-secondary" disabled={cropping} onClick={() => void edit(90)}>旋转 90°</button><button type="button" className="btn btn-secondary" disabled={active === 0 || cropping} onClick={() => move(-1)}>前移一页</button><button type="button" className="btn btn-secondary" disabled={active === pages.length - 1 || cropping} onClick={() => move(1)}>后移一页</button><button type="button" className="btn btn-secondary" disabled={cropping} onClick={() => void changePages(pages.filter((_, i) => i !== active), Math.max(0, active - 1))}>移除当前页</button></div>
+    <div className={`wb-crop-preview${cropOpen ? " is-cropping" : ""}`}><img ref={previewRef} draggable={false} alt={`第${active + 1}页及裁剪范围`} />{cropOpen && <div className="wb-crop-shade" style={{ clipPath: `polygon(evenodd, 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, ${edges[0]}% ${edges[1]}%, ${edges[0]}% ${100 - edges[3]}%, ${100 - edges[2]}% ${100 - edges[3]}%, ${100 - edges[2]}% ${edges[1]}%, ${edges[0]}% ${edges[1]}%)` }} />}{cropOpen && <div className="wb-crop-selection" style={{ left: `${edges[0]}%`, top: `${edges[1]}%`, right: `${edges[2]}%`, bottom: `${edges[3]}%` }} >
+      {([{ name: "左边", position: "left", sides: [0] }, { name: "上边", position: "top", sides: [1] }, { name: "右边", position: "right", sides: [2] }, { name: "下边", position: "bottom", sides: [3] }, { name: "左上角", position: "tl", sides: [0, 1] }, { name: "右上角", position: "tr", sides: [2, 1] }, { name: "左下角", position: "bl", sides: [0, 3] }, { name: "右下角", position: "br", sides: [2, 3] }]).map(handle => <button key={handle.position} type="button" className={`wb-crop-handle wb-crop-${handle.position}`} aria-label={`拖动裁剪框${handle.name}`} onPointerDown={event => startCrop(event, handle.sides)} onPointerMove={moveCrop} onPointerUp={event => { if (drag.current?.id === event.pointerId) { moveCrop(event); drag.current = null; } }} onPointerCancel={event => { if (drag.current?.id === event.pointerId) { setEdges(drag.current.edges); drag.current = null; } }} onLostPointerCapture={() => { drag.current = null; }} onKeyDown={event => keyCrop(event, handle.sides)} />)}
+    </div>}</div>
     <p className="wb-small">当前第 {active + 1}/{pages.length} 页 · 共约 {Math.ceil(pages.reduce((sum, b) => sum + b.size, 0) / 1024)} KB</p>
-    {cropOpen && <div className="wb-stack">{["左", "上", "右", "下"].map((name, i) => <label className="wb-field" key={name}>{name}侧裁去 {edges[i]}%<input type="range" min="0" max="40" value={edges[i]} onChange={e => setEdges(edges.map((v, j) => i === j ? Number(e.target.value) : v))} /></label>)}<div className="wb-actions"><button type="button" className="btn btn-primary" disabled={!cropping} onClick={() => void edit()}>应用裁剪</button><button type="button" className="btn btn-secondary" onClick={() => setEdges([0, 0, 0, 0])}>重置裁剪框</button></div></div>}
+    {cropOpen && <div className="wb-stack"><p className="wb-small wb-muted">拖动照片四边或四角框选题目，再点应用裁剪。也可聚焦边框后用方向键微调。</p><div className="wb-actions"><button type="button" className="btn btn-primary" disabled={!cropping} onClick={() => void edit()}>应用裁剪</button><button type="button" className="btn btn-secondary" onClick={() => setEdges([0, 0, 0, 0])}>重置裁剪框</button></div></div>}
     {cropping && <p className="wb-notice">请先应用裁剪或重置裁剪框，再切换页面或上传。</p>}
     <div className="wb-actions"><button type="button" className="btn btn-primary" disabled={cropping} onClick={() => void upload()}>上传全部 {pages.length} 页 / 重试</button><button type="button" className="btn btn-secondary" onClick={() => void changePages([])}>丢弃本批全部页面</button></div></>}
     </fieldset>{busy && <p role="status">{busy}</p>}{message && <p role="status" className="wb-notice">{message}</p>}{warning && <p role="alert" className="wb-error">{warning}</p>}</div>;

@@ -290,7 +290,7 @@ body {
 .wb-crop-preview { position: relative; overflow: hidden; max-width: 100%; width: fit-content; margin-inline: auto; }
 .wb-crop-preview img { display: block; max-width: 100%; max-height: 440px; object-fit: contain; }
 @media (max-width: 640px) { .wb-crop-preview img { max-height: 240px; } }
-.wb-crop-preview > div { position: absolute; border: 2px solid #3b8273; box-shadow: 0 0 0 1000px #0006; pointer-events: none; }
+.wb-crop-preview > .wb-crop-selection { position: absolute; border: 2px solid #3b8273; box-shadow: 0 0 0 1000px #0006; pointer-events: none; }
 .wb-math-text { min-width: 0; overflow-wrap: anywhere; }
 .wb-math-inline { display: inline-block; max-width: 100%; overflow-x: auto; vertical-align: middle; }
 .wb-math-block { display: block; max-width: 100%; overflow-x: auto; padding-block: 8px; }
@@ -320,3 +320,23 @@ body {
 .kf-catalog-confirm::backdrop { background: #1d291d66; backdrop-filter: blur(4px); }
 .kf-catalog-confirm .wb-actions { flex-wrap: wrap; }
 .kf-catalog-confirm .btn { white-space: normal; }
+
+/* Crop handles track the pointer directly; scrolling stays available outside them. */
+.wb-crop-preview.is-cropping { overflow: visible; margin-block: 24px; isolation: isolate; }
+.wb-crop-preview.is-cropping img { user-select: none; }
+.wb-crop-preview > .wb-crop-selection { box-shadow: 0 0 0 1px #fff; background: linear-gradient(#ffffff55, #ffffff55) 33.33% 0 / 1px 100% no-repeat, linear-gradient(#ffffff55, #ffffff55) 66.66% 0 / 1px 100% no-repeat, linear-gradient(#ffffff55, #ffffff55) 0 33.33% / 100% 1px no-repeat, linear-gradient(#ffffff55, #ffffff55) 0 66.66% / 100% 1px no-repeat; }
+.wb-crop-handle { position: absolute; padding: 0; min-width: 0; border: 0; border-radius: 0; background: transparent; pointer-events: auto; touch-action: none; }
+.wb-crop-handle:focus-visible { outline: 3px solid #263c28; outline-offset: 2px; }
+.wb-crop-left, .wb-crop-right { width: 44px; height: 100%; top: 0; cursor: ew-resize; }
+.wb-crop-left { left: -22px; } .wb-crop-right { right: -22px; }
+.wb-crop-top, .wb-crop-bottom { height: 44px; width: 100%; left: 0; cursor: ns-resize; }
+.wb-crop-top { top: -22px; } .wb-crop-bottom { bottom: -22px; }
+.wb-crop-tl, .wb-crop-tr, .wb-crop-bl, .wb-crop-br { width: 44px; height: 44px; z-index: 2; }
+.wb-crop-tl, .wb-crop-br { cursor: nwse-resize; } .wb-crop-tr, .wb-crop-bl { cursor: nesw-resize; }
+.wb-crop-tl, .wb-crop-tr { top: -22px; } .wb-crop-bl, .wb-crop-br { bottom: -22px; }
+.wb-crop-tl, .wb-crop-bl { left: -22px; } .wb-crop-tr, .wb-crop-br { right: -22px; }
+.wb-crop-handle::after { content: ""; position: absolute; background: #fff; border: 2px solid #3b8273; border-radius: 4px; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; }
+.wb-crop-left::after, .wb-crop-right::after { height: 32px; width: 8px; }
+.wb-crop-top::after, .wb-crop-bottom::after { width: 32px; height: 8px; }
+
+.wb-crop-shade { position: absolute; inset: 0; background: #0007; pointer-events: none; }

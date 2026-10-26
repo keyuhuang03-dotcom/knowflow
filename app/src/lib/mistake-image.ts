@@ -6,7 +6,7 @@ export function imageSize(width: number, height: number, limit = 2400) {
 }
 export function cropRect(width: number, height: number, edges: number[]) {
   const [left, top, right, bottom] = edges;
-  if (edges.length !== 4 || edges.some(n => !Number.isFinite(n) || n < 0 || n > 40)) throw new Error("裁剪范围无效");
+  if (edges.length !== 4 || edges.some(n => !Number.isFinite(n) || n < 0 || n > 95) || left + right > 95 || top + bottom > 95) throw new Error("裁剪范围无效");
   return { x: width * left / 100, y: height * top / 100, width: Math.max(1, Math.round(width * (100 - left - right) / 100)), height: Math.max(1, Math.round(height * (100 - top - bottom) / 100)) };
 }
 export async function prepareImage(blob: Blob, rotation = 0, edges = [0, 0, 0, 0]): Promise<Blob> {

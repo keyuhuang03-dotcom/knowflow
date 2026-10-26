@@ -12,6 +12,9 @@ test("crop geometry retains readable positive area and rejects invalid edges", (
   assert.deepEqual(cropRect(1000, 800, [10, 20, 30, 10]), { x: 100, y: 160, width: 600, height: 560 });
   assert.deepEqual(cropRect(100, 100, [40,40,40,40]), { x: 40, y: 40, width: 20, height: 20 });
   assert.throws(() => cropRect(100, 100, [NaN,0,0,0]));
+  assert.deepEqual(cropRect(1000, 800, [70, 60, 10, 20]), { x: 700, y: 480, width: 200, height: 160 });
+  assert.throws(() => cropRect(100, 100, [70, 0, 30, 0]));
+  assert.throws(() => cropRect(100, 100, [0, 96, 0, 0]));
 });
 test("unsupported formats and oversized files fail before allocating a decoder", async () => {
   await assert.rejects(prepareImage(new Blob(["HEIC data"], { type: "image/jpeg" })), /HEIC/);
