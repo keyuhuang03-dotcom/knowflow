@@ -70,3 +70,42 @@
 .topbar .search .searchInput { padding: 4px 8px; border: 1px solid #d8e1cd; border-radius: 12px; background: #ffffffc9; color: #2b3924; outline: none; }
 .topbar .search .searchInput:focus-visible { border-color: #99b467; outline: none; box-shadow: 0 0 0 3px #c5e86c25; }
 @media (max-width: 600px) { .topbar .search .searchInput { font-size: 16px; } }
+
+/* Capture-first phone overview; desktop and tablet styles above remain unchanged. */
+@media (max-width: 768px) {
+  .topbar { height: 48px; }.search { min-height: 48px; }.account { display: none; }.search kbd { display: none; }
+  .mobileMenu { width: 44px; height: 44px; }
+  .header { min-height: 0; padding: 20px 0 16px; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: start; gap: 12px; }
+  .eyebrow, .heroArt { display: none; }
+  .header h1 { font-size: 27px; margin: 0 0 7px; line-height: 1.25; }
+  .subtitle { font-size: 12px; line-height: 1.6; max-width: none; }
+  .addBook { position: static; min-height: 44px; min-width: 44px; margin: 0; padding: 9px 12px; border-radius: 14px; gap: 5px; font-size: 12px; }
+  .addBook svg { width: 17px; height: 17px; }
+  .grid { grid-template-columns: 1fr; gap: 10px; padding: 0; }
+  .card { border-radius: 20px !important; }.card:hover { transform: none; }
+  .card > div:last-child { padding: 14px 16px; }
+  .cardContent { min-height: 0; }
+  .cardLink { display: grid; grid-template-columns: 44px minmax(0,1fr); column-gap: 12px; min-height: 0; padding-right: 30px; align-items: center; }
+  .subjectIcon { width: 44px; height: 44px; border-radius: 14px; align-self: start; }
+  .subjectIcon > svg { width: 25px; height: 25px; }.subjectIcon > span { font-size: 28px; }
+  .subjectHeading { display: block; padding: 0; margin: 0; min-width: 0; }
+  .subjectHeading h2 { font-size: 19px; line-height: 1.35; margin-bottom: 3px; }
+  .hasBook, .noBook { display: block; font-size: 11px; padding: 0; background: transparent; border-radius: 0; white-space: normal; line-height: 1.5; }
+  .hasBook { color: #668348; }.noBook { color: #7b8472; }
+  .subjectArt, .bookTitle, .cardDescription { display: none; }
+  .cardFooter { grid-column: 2; display: grid; gap: 5px; border: 0; padding: 0; margin: 8px 0 0; font-size: 11px; }
+  .cardFooter > span:first-child { white-space: normal; }
+  .cardFooter progress { width: 100%; height: 5px; }
+  .cardFooter .arrow { display: none; }
+  .emptyBook .cardFooter { display: none; }
+  .cardMenu { top: 0; right: -10px; }
+  .cardMenu summary { width: 44px; height: 44px; min-width: 44px; min-height: 44px; display: grid; place-items: center; }
+  .quick { margin-top: 16px; }.quick > div:last-child { padding: 12px 16px; }
+  .quickContent { flex-wrap: nowrap; gap: 10px; }.quickContent > div { min-width: 0; }.quick h2 { font-size: 14px; }.quick p { display: none; }
+  .camera { min-width: 34px; height: 34px; border-radius: 11px; }.camera svg { width: 21px; }
+  .quickContent > a { width: auto; min-height: 44px; padding: 9px; font-size: 12px; margin: 0; gap: 5px; flex: 0 0 auto; }.quickContent > a svg { width: 15px; }
+  .dialog { max-width: calc(100vw - 32px); max-height: calc(100dvh - 48px); overflow-y: auto; }.dialog > div > button, .dialog > a { min-height: 44px; }
+}
+
+.catalogPending { display: none; }
+@media (max-width: 768px) { .noNodes > span:first-of-type, .noNodes > progress { display: none; }.noNodes > .catalogPending { display: block; color: #7b8472; } }

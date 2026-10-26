@@ -7,11 +7,11 @@ import type { CatalogEntry } from "@/lib/textbook-catalog";
 type Plan = { created: number; reused: number; archived: number; total: number; revision: string };
 type Job = { id: string; status: string; completedPages: number; totalPages: number; images: string[]; entries: CatalogEntry[]; warnings: string[]; error: string | null };
 type Preview = { path: string; page: number | null; selected: boolean };
-export default function CatalogPhotoImport({ subjectId, title, part }: { subjectId: string; title: string | null; part?: string }) {
+export default function CatalogPhotoImport({ subjectId, title, part, initiallyOpen = false }: { subjectId: string; title: string | null; part?: string; initiallyOpen?: boolean }) {
   const suggestedBook = title || `${subjectParts[subjectId]?.find(p => p.id === part)?.name || "当前科目"}教材`;
   const [mode, setMode] = useState<"replace" | "append">("replace");
   const [plan, setPlan] = useState<Plan | null>(null);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   const [book, setBook] = useState(suggestedBook);
   const [images, setImages] = useState<string[]>([]);
   const [entries, setEntries] = useState<Preview[]>([]);
