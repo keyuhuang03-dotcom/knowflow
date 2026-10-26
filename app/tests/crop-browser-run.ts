@@ -34,14 +34,14 @@ async function main(){
     const frame=p.locator('.wb-crop-selection');
     // All four edges follow the mouse and do not jump when first grabbed.
     for(const name of ['左边','上边','右边','下边']) {
-     const h=p.getByRole('button',{name:'拖动裁剪框'+name,exact:true});await img.evaluate(el=>el.scrollIntoView({block:"center"}));
+     const h=p.getByRole('button',{name:'拖动裁剪框'+name,exact:true});await img.evaluate((el: HTMLElement)=>el.scrollIntoView({block:"center"}));
      const b=(await h.boundingBox())!;const before=(await frame.boundingBox())!;
      await p.mouse.move(b.x+b.width/2,b.y+b.height/2);await p.mouse.down();
      await p.mouse.move(b.x+b.width/2+(name==='左边'?20:name==='右边'?-20:0),b.y+b.height/2+(name==='上边'?20:name==='下边'?-20:0),{steps:5});await p.mouse.up();
      const after=(await frame.boundingBox())!;assert.ok(after.width<before.width-15 || after.height<before.height-15);
     }
     await p.getByRole('button',{name:'重置裁剪框',exact:true}).click();
-    const h=p.getByRole('button',{name:'拖动裁剪框左上角',exact:true});await img.evaluate(el=>el.scrollIntoView({block:"center"}));const b=(await h.boundingBox())!;
+    const h=p.getByRole('button',{name:'拖动裁剪框左上角',exact:true});await img.evaluate((el: HTMLElement)=>el.scrollIntoView({block:"center"}));const b=(await h.boundingBox())!;
     const original=(await img.boundingBox())!;
     // Real Chromium touch events exercise pointer capture and prevent page scrolling.
     const cdp=await context.newCDPSession(p);const x=b.x+b.width/2,y=b.y+b.height/2;
