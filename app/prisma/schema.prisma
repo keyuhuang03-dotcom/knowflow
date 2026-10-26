@@ -17,6 +17,7 @@ model User {
 }
 
 model Subject {
+  catalogJobs CatalogJob[]
   id             String   @id @default(uuid())
   name           String
   textbookTitle  String?
@@ -201,4 +202,26 @@ model WorkerLease {
 model AiUsageDay {
   day  String @id
   used Int    @default(0)
+}
+
+// Recognition drafts are durable; importing the textbook still requires confirmation.
+model CatalogJob {
+  id             String @id @default(uuid())
+  subjectId      String
+  subject        Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  part           String @default("")
+  images         String
+  entries        String @default("[]")
+  warnings       String @default("[]")
+  completedPages Int @default(0)
+  status         String @default("queued")
+  attempts       Int @default(0)
+  availableAt    DateTime @default(now())
+  leaseUntil     DateTime?
+  owner          String?
+  lastError      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  @@index([status, availableAt])
+  @@index([subjectId, part, createdAt])
 }

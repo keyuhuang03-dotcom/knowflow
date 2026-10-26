@@ -6,7 +6,7 @@ export type CatalogEntry = { path: string[]; page: number | null };
 export type CatalogMode = "append" | "replace";
 export class CatalogConflict extends InputError {}
 export function parseCatalogEntries(value: unknown): CatalogEntry[] {
-  if (!Array.isArray(value) || !value.length || value.length > 200) throw new InputError("请核对并选择 1～200 条目录");
+  if (!Array.isArray(value) || !value.length || value.length > 600) throw new InputError("请核对并选择 1～600 条目录");
   const entries = new Map<string, CatalogEntry>();
   for (const item of value) {
     const raw = record(item);
@@ -31,12 +31,16 @@ export function catalogWarnings(entries: CatalogEntry[]) {
   if (entries.length > 3 && entries.every(e => e.path.length === 1)) warnings.push("结果全部为同级目录，请核对原图是否包含缩进的小节；不要直接将小节作为章节保存。");
   return [...new Set(warnings)].slice(0, 30);
 }
-export async function importCatalog(subjectId: string, title: string, entries: CatalogEntry[], options: { mode?: CatalogMode; dryRun?: boolean; revision?: string; part?: string | null } = {}) {
+export async function importCatalog(subjectId: string, title: string, entries: CatalogEntry[], options: { mode?: CatalogMode; dryRun?: boolean; revision?: string; part?: string | null; jobId?: string } = {}) {
   const mode = options.mode || "append";
   return prisma.$transaction(async tx => {
     const subject = await tx.subject.findUnique({ where: { id: subjectId } });
     if (!subject) throw new InputError("科目不存在");
     const part = validateSubjectPart(subjectId, options.part);
+    if (options.jobId) {
+      const job = await tx.catalogJob.findUnique({ where: { id: options.jobId } });
+      if (!job || job.subjectId !== subjectId || job.part !== (part || "") || job.status !== "ready") throw new InputError("请等待全部目录识别完成后再预览保存");
+    }
     const books = partBooks(subject.partTextbooks);
     if (!part && (Object.keys(books).length || await tx.knowledgeNode.count({where:{subjectId,subjectPart:{not:null}}}))) throw new InputError("请先选择高数、线代等所属部分，不能覆盖整个科目");
     const currentTitle = part ? books[part] : subject.textbookTitle;
@@ -82,6 +86,7 @@ export async function importCatalog(subjectId: string, title: string, entries: C
     }
     if (archiveIds.length) await tx.knowledgeNode.updateMany({ where: { id: { in: archiveIds } }, data: { catalogArchived: true } });
     await tx.subject.update({ where: { id: subjectId }, data: part ? { partTextbooks: JSON.stringify({...books,[part]:title}) } : { textbookTitle: title } });
+    if (options.jobId) await tx.catalogJob.update({ where: { id: options.jobId }, data: { status: "saved" } });
     return result;
   }, { timeout: 30000 });
 }

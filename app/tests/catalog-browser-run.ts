@@ -29,11 +29,19 @@ async function main(){
    const context=await browser.newContext({viewport:{width:390,height:844}});const p=await context.newPage();const errors:string[]=[];p.on('pageerror',(e:Error)=>errors.push(e.message));
    assert.equal((await context.request.post(base+'/api/auth/login',{headers:{Origin:base},data:{username:'fixture',password}})).status(),200);
    await p.goto(base+'/knowledge/math');await p.getByRole('button',{name:'拍照识别教材目录',exact:true}).click();
-   await p.route('**/api/subjects/math/catalog',async (route: {request:()=>{method:()=>string};fulfill:(v:unknown)=>Promise<void>;continue:()=>Promise<void>})=>{if(route.request().method()==='POST')await route.fulfill({json:{entries,warnings:['测试识别预览，请核对页码']}});else await route.continue();});
+
    await p.locator('input[type=file]').first().setInputFiles({name:'目录.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a/9sAAAAASUVORK5CYII=','base64')});
    await p.getByRole('button',{name:'上传全部 1 页 / 重试',exact:true}).click();
    await p.getByText('全部目录页面已上传，可以识别。',{exact:true}).waitFor();
-   await p.getByRole('button',{name:'识别目录（1 页）',exact:true}).click();await p.getByRole('heading',{name:'目录层级预览'}).waitFor();
+   await p.getByRole('button',{name:'识别目录（1 页）',exact:true}).click();await p.getByText('后台识别 · 已完成 0/1 页',{exact:true}).waitFor();
+   const task=await db.catalogJob.findFirstOrThrow();
+   await db.catalogJob.update({where:{id:task.id},data:{images:JSON.stringify([...JSON.parse(task.images),...JSON.parse(task.images)]),entries:JSON.stringify(entries.slice(0,2)),completedPages:1}});
+   await p.reload();await p.getByText('后台识别 · 已完成 1/2 页',{exact:true}).waitFor();
+   await db.catalogJob.update({where:{id:task.id},data:{entries:JSON.stringify(entries),warnings:'[]',status:'ready',completedPages:2}});
+   await p.getByRole('heading',{name:'目录层级预览'}).waitFor();
+   await p.getByText('识别完成 · 尚未保存目录',{exact:true}).waitFor();
+   await p.reload();await p.getByRole('heading',{name:'目录层级预览'}).waitFor();
+   await p.getByText('2.1 数列',{exact:true}).waitFor();
    assert.equal(await db.knowledgeNode.count(),1);
    await p.getByRole('button',{name:'预览保存影响',exact:true}).click();await p.getByRole('button',{name:'确认替换，保留旧目录学习记录',exact:true}).waitFor();assert.equal(await db.knowledgeNode.count(),1);
    await p.getByRole('button',{name:'确认替换，保留旧目录学习记录',exact:true}).click();await p.getByText(/目录已保存：新增 5/).waitFor();
@@ -52,7 +60,7 @@ async function main(){
    await p.getByRole('button',{name:'历史目录',exact:true}).click();await p.getByRole('link',{name:/旧目录条目/}).waitFor();
    assert.equal(await db.note.count({where:{knowledgeNodes:{some:{id:old.id}}}}),1);
    await p.setViewportSize({width:1440,height:900});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.deepEqual(errors,[]);
-   console.log('PASS catalog upload/preview/replace, chapter drilldown, pages, search ancestors, collapse after reload, archived notes and responsive layout');
+   console.log('PASS background catalog progress/reload/preview/replace, chapter drilldown, pages, search ancestors, collapse after reload, archived notes and responsive layout');
   }finally{await browser.close();}
  }finally{server.kill('SIGTERM');await once(server,'exit');await db.$disconnect();}
 }

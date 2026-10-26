@@ -6,11 +6,11 @@ export const catalogRecognitionPrompt = `你是教材目录转录器，只识别
 页码是标题右侧/点线末尾的实际书页码，不是照片序号、章节编号或PDF页数。纸张弯曲或拍摄倾斜时，必须沿每一条点线追踪到右侧数字，不能按标题所在水平高度配页码；特别检查每页底部，最后一个页码通常属于最后一条标题，不要误判为无标题。先逐行核对标题和页码的一一对应，再输出。断行标题连接，点线不是标题；没有可靠数字时page为null。禁止推算结束页码或缺失页码。页码早于所属章节、编号冲突、父章节缺失时明确写warnings，不能凭常识补出未拍到的章节标题。
 不要补造题目、答案或出版社信息。标题或结构无法辨认就列出具体照片位置和原因供核对；忽略照片边缘相邻页露出的残缺内容和目录末尾非目录的表格。若不是目录，items为空数组。最多200项、6级；超出容量时truncated=true，不允许静默漏项。采用紧凑格式以免长目录被截断：严格返回合法JSON：{"items":[[1,"第一章 函数与极限",null],[2,"第一节 函数",3],[3,"考试内容概要",3],[4,"一、函数的概念",3]],"truncated":false,"warnings":["需要核对的内容"]}。每项为[depth,原文标题,实际页码或null]，不要输出重复的完整路径。`;
 
-export function decodeCatalogRecognition(value: unknown) {
+export function decodeCatalogRecognition(value: unknown, continuation: string[] = []) {
   const raw = record(value);
   if (raw.truncated === true) throw new InputError("目录结果不完整，请减少页数后重新识别；请勿直接替换整本目录");
   if (!Array.isArray(raw.items)) return parseCatalogEntries(raw.entries); // old provider fixtures/compatibility
-  const stack: string[] = [];
+  const stack: string[] = [...continuation];
   return parseCatalogEntries(raw.items.map(item => {
     if (!Array.isArray(item) || item.length !== 3) throw new InputError("目录结构格式不完整，请重新识别");
     const [depth, title, page] = item;
