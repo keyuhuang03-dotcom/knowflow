@@ -315,3 +315,8 @@ body {
   .kf-reflection-options .kf-choice-wide { grid-column: 1 / -1; }
   .kf-reflection-options .wb-choice { padding: 14px; gap: 10px; }
 }
+
+.kf-catalog-confirm { border: 1px solid #e1e8d7; border-radius: 24px; padding: 28px; max-width: min(92vw, 560px); max-height: 85dvh; overflow-y: auto; margin: auto; background: #fcfcf7; color: #253020; box-shadow: 0 24px 90px #17200c33; }
+.kf-catalog-confirm::backdrop { background: #1d291d66; backdrop-filter: blur(4px); }
+.kf-catalog-confirm .wb-actions { flex-wrap: wrap; }
+.kf-catalog-confirm .btn { white-space: normal; }

@@ -15,7 +15,7 @@ async function main(){
  execFileSync(process.execPath,['node_modules/prisma/build/index.js','migrate','deploy'],{env,stdio:'pipe'});
  execFileSync(process.execPath,['--import','tsx','scripts/bootstrap.ts'],{env,stdio:'pipe'});
  const db=new PrismaClient({datasourceUrl:env.DATABASE_URL});
- await db.subject.update({where:{id:'math'},data:{textbookTitle:'测试教材',partTextbooks:JSON.stringify({calculus:'测试教材'})}});
+ await db.subject.update({where:{id:'math'},data:{textbookTitle:'测试教材',partTextbooks:'{}'}});
  const old=await db.knowledgeNode.create({data:{subjectId:'math',subjectPart:'calculus',name:'旧目录条目'}});
  await db.note.create({data:{title:'历史笔记',content:'保留',knowledgeNodes:{connect:{id:old.id}}}});
  const entries=[{path:['第一章 函数'],page:1},{path:['第一章 函数','1.1 映射'],page:3},{path:['第一章 函数','1.1 映射','1.1.1 定义'],page:4},{path:['第二章 极限'],page:21},{path:['第二章 极限','2.1 数列'],page:22}];
@@ -40,10 +40,21 @@ async function main(){
    await db.catalogJob.update({where:{id:task.id},data:{entries:JSON.stringify(entries),warnings:'[]',status:'ready',completedPages:2}});
    await p.getByRole('heading',{name:'目录层级预览'}).waitFor();
    await p.getByText('识别完成 · 尚未保存目录',{exact:true}).waitFor();
+   await p.evaluate(async () => {
+    const db=await new Promise<IDBDatabase>((resolve,reject)=>{const r=indexedDB.open('knowflow-intake',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);});
+    await new Promise<void>((resolve,reject)=>{const tx=db.transaction('images','readwrite');tx.objectStore('images').put([new Blob(['unuploaded draft'],{type:'image/png'})],'knowflow-catalog-math-calculus-image');tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);});db.close();
+   });
    await p.reload();await p.getByRole('heading',{name:'目录层级预览'}).waitFor();
+   await p.getByText('另有未上传的本地图片，不影响当前已识别目录的保存。',{exact:true}).waitFor();
    await p.getByText('2.1 数列',{exact:true}).waitFor();
    assert.equal(await db.knowledgeNode.count(),1);
-   await p.getByRole('button',{name:'预览保存影响',exact:true}).click();await p.getByRole('button',{name:'确认替换，保留旧目录学习记录',exact:true}).waitFor();assert.equal(await db.knowledgeNode.count(),1);
+   assert.equal(await p.getByRole('textbox',{name:'主教材名称',exact:true}).inputValue(),'高等数学教材');
+   await p.getByRole('textbox',{name:'主教材名称',exact:true}).fill('');
+   await p.getByRole('button',{name:'保存目录',exact:true}).click();
+   await p.getByRole('alert').filter({hasText:'请填写教材名'}).waitFor();
+   await p.getByRole('textbox',{name:'主教材名称',exact:true}).fill('测试教材');
+   await p.getByRole('button',{name:'保存目录',exact:true}).click();
+   await p.getByRole('dialog',{name:'确认保存目录'}).waitFor();await p.getByRole('button',{name:'确认替换，保留旧目录学习记录',exact:true}).waitFor();assert.equal(await db.knowledgeNode.count(),1);
    await p.getByRole('button',{name:'确认替换，保留旧目录学习记录',exact:true}).click();await p.getByText(/目录已保存：新增 5/).waitFor();
    await p.getByRole('button',{name:'拍照识别教材目录',exact:true}).click();
    const panel=p.locator('section.wb-panel').filter({has:p.getByRole('heading',{name:'教材目录',exact:true})});

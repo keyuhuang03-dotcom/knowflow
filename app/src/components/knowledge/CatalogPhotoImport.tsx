@@ -1,22 +1,27 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { subjectParts } from "@/lib/subject-parts";
 import MultiImageIntake from "@/components/wrong-questions/MultiImageIntake";
 import type { CatalogEntry } from "@/lib/textbook-catalog";
 type Plan = { created: number; reused: number; archived: number; total: number; revision: string };
 type Job = { id: string; status: string; completedPages: number; totalPages: number; images: string[]; entries: CatalogEntry[]; warnings: string[]; error: string | null };
 type Preview = { path: string; page: number | null; selected: boolean };
 export default function CatalogPhotoImport({ subjectId, title, part }: { subjectId: string; title: string | null; part?: string }) {
+  const suggestedBook = title || `${subjectParts[subjectId]?.find(p => p.id === part)?.name || "当前科目"}教材`;
   const [mode, setMode] = useState<"replace" | "append">("replace");
   const [plan, setPlan] = useState<Plan | null>(null);
   const [open, setOpen] = useState(false);
-  const [book, setBook] = useState(title || "");
+  const [book, setBook] = useState(suggestedBook);
   const [images, setImages] = useState<string[]>([]);
   const [entries, setEntries] = useState<Preview[]>([]);
   const [warnings, setWarnings] = useState<string[]>([]);
   const [requestBusy, setBusy] = useState("");
   const [imageBusy, setImageBusy] = useState("");
   const [pending, setPending] = useState(false);
+  const bookRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLDialogElement>(null);
+  const [bookError, setBookError] = useState("");
   const [message, setMessage] = useState("");
   const [job, setJob] = useState<Job | null>(null);
   const jobRef = useRef<Job | null>(null);
@@ -35,7 +40,7 @@ export default function CatalogPhotoImport({ subjectId, title, part }: { subject
     try {
       draft = JSON.parse(localStorage.getItem(key) || "null");
       if (draft && Array.isArray(draft.images) && draft.images.length <= 6 && draft.images.every(v => typeof v === "string" && /^\/uploads\/[a-zA-Z0-9_.-]+\.(jpg|jpeg|png|webp)$/i.test(v)) && Array.isArray(draft.entries) && draft.entries.length <= 600 && draft.entries.every(v => v && typeof v.path === "string" && typeof v.selected === "boolean" && (v.page === null || Number.isInteger(v.page)))) {
-        setImages(draft.images); setEntries(draft.entries); setBook(typeof draft.book === "string" ? draft.book : title || "");
+        setImages(draft.images); setEntries(draft.entries); setBook(typeof draft.book === "string" && draft.book.trim() ? draft.book : suggestedBook);
         setMode(draft.mode === "append" ? "append" : "replace"); setWarnings(Array.isArray(draft.warnings) ? draft.warnings : []);
         if (draft.images.length || draft.entries.length) setOpen(true);
       } else draft = null;
@@ -70,17 +75,30 @@ export default function CatalogPhotoImport({ subjectId, title, part }: { subject
     void poll();
     }, 0);
     return () => { alive = false; clearTimeout(restore); clearTimeout(timer); };
-  }, [subjectId, part, key, title, pollVersion]);
+  }, [subjectId, part, key, suggestedBook, pollVersion]);
+  useEffect(() => {
+    const dialog = confirmRef.current;
+    if (plan && !dialog?.open) dialog?.showModal();
+    else if (!plan && dialog?.open) dialog.close();
+  }, [plan]);
   function retain(nextImages: string[], nextEntries: Preview[], nextBook = book, nextWarnings = warnings, nextMode = mode) {
     setPlan(null);
     try { localStorage.setItem(key, JSON.stringify({ mode: nextMode, images: nextImages, entries: nextEntries, book: nextBook, warnings: nextWarnings, jobId: jobRef.current?.id, completedPages: jobRef.current?.completedPages })); }
     catch { setMessage("目录草稿存储失败，当前预览仍可使用；请勿刷新，先完成确认。"); }
   }
   async function submit(save: boolean, commit = false) {
-    if (lock.current || imageBusy || pending || !loaded || (save && job && job.status !== "ready")) return;
+    if (lock.current) return;
+    if (!loaded) { setMessage("正在恢复目录状态，请稍后再保存。"); return; }
+    if (save) {
+      if (job && job.status !== "ready") { setMessage("全部页面识别完成后才可保存，已完成的预览会保留。"); return; }
+      if (!book.trim()) { setBookError("请填写教材名，也可以使用当前部分名称作为教材名。"); bookRef.current?.focus(); return; }
+      if (!entries.some(e => e.selected)) { setMessage("请至少选择一条目录后保存。"); return; }
+    }
+    // A completed server preview is independent of leftover local upload drafts.
+    if ((!save || job?.status !== "ready") && (imageBusy || pending)) { setMessage("请先上传或丢弃当前待上传图片，再继续。"); return; }
     lock.current = true; setBusy(save ? commit ? "正在保存目录…" : "正在检查保存范围…" : "正在识别目录…"); setMessage("");
     try {
-      const response = await fetch(`/api/subjects/${subjectId}/catalog`, { method: save ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(save ? { textbookTitle: book, part, jobId: job?.id, mode, dryRun: !commit, confirmed: commit, replaceConfirmed: commit && mode === "replace", revision: commit ? plan?.revision : undefined, entries: entries.filter(e => e.selected).map(e => ({ path: e.path.split(" / ").map(v => v.trim()), page: e.page })) } : { images, part, background: true, ...(job?.status === "failed" ? { retryJobId: job.id } : {}) }) });
+      const response = await fetch(`/api/subjects/${subjectId}/catalog`, { method: save ? "PUT" : "POST", headers: { "Content-Type": "application/json" }, signal: AbortSignal.timeout(save ? 45000 : 15000), body: JSON.stringify(save ? { textbookTitle: book, part, jobId: job?.id, mode, dryRun: !commit, confirmed: commit, replaceConfirmed: commit && mode === "replace", revision: commit ? plan?.revision : undefined, entries: entries.filter(e => e.selected).map(e => ({ path: e.path.split(" / ").map(v => v.trim()), page: e.page })) } : { images, part, background: true, ...(job?.status === "failed" ? { retryJobId: job.id } : {}) }) });
       const data = await response.json(); if (!response.ok) { if (response.status === 409) setPlan(null); throw new Error(data.error); }
       if (!save && data.id) { jobRef.current = data; setJob(data); setPollVersion(v => v + 1); setMessage("后台任务已建立，可以离开页面；返回当前部分会恢复进度和预览。"); return; }
       if (save && !commit) { setPlan(data); return; }
@@ -93,21 +111,21 @@ export default function CatalogPhotoImport({ subjectId, title, part }: { subject
         const next = (data.entries as CatalogEntry[]).map(e => ({ path: e.path.join(" / "), page: e.page, selected: true }));
         setEntries(next); setWarnings(data.warnings); retain(images, next, book, data.warnings);
       }
-    } catch (error) { setMessage(error instanceof Error ? error.message : "操作失败，图片与预览保留，请重试。"); }
+    } catch (error) { setMessage(error instanceof Error && error.name !== "TimeoutError" ? error.message : "请求超时，预览仍保留。请刷新确认目录是否已保存，再决定是否重试。"); }
     finally { lock.current = false; setBusy(""); }
   }
   return <section className="wb-stack"><button className="btn btn-secondary" aria-expanded={open} onClick={() => setOpen(!open)}>拍照识别教材目录</button>{open && <div className="wb-panel wb-stack">
     <h2>拍照识别教材目录</h2><p className="wb-muted">上传目录页 → 核对章节和页码 → 预览保存范围。完整重录选“替换”，补充缺页选“追加”。</p>
     <button className="btn btn-secondary" disabled={Boolean(busy || imageBusy)} onClick={() => {
-      try { const raw = localStorage.getItem(key); if (!raw) { setMessage("没有可恢复的目录预览草稿。"); return; } const d = JSON.parse(raw); if (!Array.isArray(d.images) || d.images.length > 6 || d.images.some((v: unknown) => typeof v !== "string" || !/^\/uploads\/[a-zA-Z0-9_.-]+\.(jpg|jpeg|png|webp)$/i.test(v)) || !Array.isArray(d.entries) || d.entries.length > 600 || d.entries.some((v: Preview) => !v || typeof v.path !== "string" || typeof v.selected !== "boolean" || (v.page !== null && (!Number.isInteger(v.page) || v.page < 1 || v.page > 10000))) || (d.book && typeof d.book !== "string") || !Array.isArray(d.warnings) || d.warnings.some((v: unknown) => typeof v !== "string")) throw new Error(); setPlan(null); setMode(d.mode === "replace" ? "replace" : "append"); setImages(d.images); setEntries(d.entries); setBook(d.book || title || ""); setWarnings(d.warnings || []); setMessage("已恢复目录预览，请核对后继续。"); } catch { setMessage("目录草稿无法读取，请重新上传；已有数据库目录不受影响。"); }
+      try { const raw = localStorage.getItem(key); if (!raw) { setMessage("没有可恢复的目录预览草稿。"); return; } const d = JSON.parse(raw); if (!Array.isArray(d.images) || d.images.length > 6 || d.images.some((v: unknown) => typeof v !== "string" || !/^\/uploads\/[a-zA-Z0-9_.-]+\.(jpg|jpeg|png|webp)$/i.test(v)) || !Array.isArray(d.entries) || d.entries.length > 600 || d.entries.some((v: Preview) => !v || typeof v.path !== "string" || typeof v.selected !== "boolean" || (v.page !== null && (!Number.isInteger(v.page) || v.page < 1 || v.page > 10000))) || (d.book && typeof d.book !== "string") || !Array.isArray(d.warnings) || d.warnings.some((v: unknown) => typeof v !== "string")) throw new Error(); setPlan(null); setMode(d.mode === "replace" ? "replace" : "append"); setImages(d.images); setEntries(d.entries); setBook(d.book || suggestedBook); setWarnings(d.warnings || []); setMessage("已恢复目录预览，请核对后继续。"); } catch { setMessage("目录草稿无法读取，请重新上传；已有数据库目录不受影响。"); }
     }}>恢复上次目录预览</button>
     <label className="wb-field">保存方式<select value={mode} disabled={Boolean(busy)} onChange={e => { const nextMode = e.target.value as "replace" | "append"; setMode(nextMode); retain(images, entries, book, warnings, nextMode); }}><option value="replace">替换当前部分目录</option><option value="append">追加目录页</option></select></label>
     <p className="wb-small wb-muted">{mode === "replace" ? "请录入当前部分的完整目录，其他部分不受影响。未匹配的旧节点会移到历史目录，保留原有学习内容；仅上传部分页时请用追加。" : "保留当前目录，只补充缺少的章节并更新已识别的起始页码。"}</p>
-    <label className="wb-field">主教材名称<input value={book} disabled={Boolean(busy)} maxLength={150} onChange={e => { setBook(e.target.value); retain(images, entries, e.target.value); }} placeholder="填写本次目录所属教材" /></label>
+    <label className="wb-field">主教材名称<input ref={bookRef} aria-invalid={Boolean(bookError)} value={book} disabled={Boolean(busy)} maxLength={150} onChange={e => { setBookError(""); setBook(e.target.value); retain(images, entries, e.target.value); }} placeholder="填写本次目录所属教材" /></label>{bookError && <p role="alert" className="wb-error">{bookError}</p>}{!title && book === suggestedBook && <p className="wb-muted wb-small">暂用“{suggestedBook}”作为名称，之后可以修改为实际书名。</p>}
     <fieldset disabled={Boolean(busy || job) || images.length >= 6} className="wb-reset-fieldset"><MultiImageIntake maxPages={6 - images.length} storageId={`${key}-image`} label="目录页" onPending={setPending} onBusy={setImageBusy} onUploaded={urls => { const next = [...new Set([...images, ...urls])]; jobRef.current = null; setJob(null); setImages(next); setEntries([]); retain(next, []); }} /></fieldset>
     <p className="wb-muted wb-small">每批最多 6 页，后台逐页识别并保存进度。照片会发送给已配置的图片 AI；识别不会自动改动教材目录。</p>
     {images.map((url, i) => <div key={url} className="wb-between"><a href={url} target="_blank" rel="noreferrer">已上传目录第 {i + 1} 页 · 查看照片</a><button className="btn btn-secondary" disabled={Boolean(busy || imageBusy || job)} onClick={() => { const next = images.filter(v => v !== url); jobRef.current = null; setJob(null); setImages(next); setEntries([]); retain(next, []); }}>移出本批</button></div>)}
-    {pending && <p className="wb-notice">请先上传或丢弃当前预览图片，再识别目录。</p>}
+    {pending && <p className="wb-notice">{job?.status === "ready" ? "另有未上传的本地图片，不影响当前已识别目录的保存。" : "请先上传或丢弃当前预览图片，再识别目录。"}</p>}
     <button className="btn btn-primary" disabled={job?.status === "ready" || !loaded || !images.length || images.length > 6 || Boolean(busy || imageBusy) || pending} onClick={() => void submit(false)}>{job?.status === "failed" ? "继续识别未完成页" : "识别目录"}{images.length ? `（${images.length} 页）` : ""}</button>
     {job && <button className="btn btn-secondary" disabled={Boolean(requestBusy)} onClick={async () => {
       if (lock.current) return; lock.current = true;
@@ -117,10 +135,13 @@ export default function CatalogPhotoImport({ subjectId, title, part }: { subject
         jobRef.current = null; setJob(null); setImages([]); setEntries([]); setWarnings([]); setPlan(null); setMessage("已放弃本次识别，可以重新选图；原教材目录不受影响。"); localStorage.removeItem(key);
       } catch (e) { setMessage(e instanceof Error ? e.message : "操作失败"); } finally { lock.current = false; }
     }}>放弃本次识别，重新选图</button>}
-    {job && <div className="wb-notice" role="status"><strong>{job.status === "ready" ? "识别完成 · 尚未保存目录" : job.status === "failed" ? "识别暂停 · 已完成页保留" : `后台识别 · 已完成 ${job.completedPages}/${job.totalPages} 页`}</strong><p>{job.status === "ready" ? "核对下方章节和页码，再点击预览保存影响并确认保存。" : "可以离开或刷新页面，返回当前教材部分会恢复进度。"}</p>{job.error && <p>{job.error}</p>}</div>}
+    {job && <div className="wb-notice" role="status"><strong>{job.status === "ready" ? "识别完成 · 尚未保存目录" : job.status === "failed" ? "识别暂停 · 已完成页保留" : `后台识别 · 已完成 ${job.completedPages}/${job.totalPages} 页`}</strong><p>{job.status === "ready" ? "核对下方章节和页码，再点击“保存目录”并确认。" : "可以离开或刷新页面，返回当前教材部分会恢复进度。"}</p>{job.error && <p>{job.error}</p>}</div>}
     <div ref={previewRef} />
     {warnings.map((w, i) => <p key={i} className="wb-notice">需核对：{w}</p>)}
-    {entries.length > 0 && <><h3>目录层级预览</h3><ol className="wb-stack" style={{ gap: 4, listStyle: "none", padding: 0 }}>{entries.filter(e => e.selected).map((entry, i) => <li key={i} style={{ paddingLeft: Math.min(entry.path.split(" / ").length - 1, 5) * 12, overflowWrap: "anywhere" }}><span>{entry.path.split(" / ").at(-1)}</span><small className="wb-muted"> · {entry.page == null ? "页码待补" : `第 ${entry.page} 页`}</small></li>)}</ol><details><summary>校对标题、层级与页码</summary><p className="wb-small wb-muted">用“ / ”分隔章节层级，例如：第一章 / 第一节。重复的完整路径不会重复创建。</p>{entries.map((entry, i) => <div key={i} className="wb-stack"><label className="wb-choice"><input type="checkbox" checked={entry.selected} disabled={Boolean(busy)} onChange={e => { const next = entries.map((v, j) => j === i ? { ...v, selected: e.target.checked } : v); setEntries(next); retain(images, next); }} /><span>目录项 {i + 1}</span></label><label className="wb-field">章节路径<input value={entry.path} disabled={Boolean(busy)} onChange={e => { const next = entries.map((v, j) => j === i ? { ...v, path: e.target.value } : v); setEntries(next); retain(images, next); }} /></label><label className="wb-field">起始页码（可空）<input type="number" min="1" max="10000" value={entry.page ?? ""} disabled={Boolean(busy)} onChange={e => { const next = entries.map((v, j) => j === i ? { ...v, page: e.target.value ? Number(e.target.value) : null } : v); setEntries(next); retain(images, next); }} /></label></div>)}</details><button className="btn btn-primary" disabled={(job !== null && job.status !== "ready") || !book.trim() || !entries.some(e => e.selected) || Boolean(busy || imageBusy) || pending} onClick={() => void submit(true)}>预览保存影响</button>{plan && <div className="wb-notice"><p>将新增 {plan.created}、复用 {plan.reused}、移入历史 {plan.archived} 个节点。历史节点仍保留错题和笔记。</p><button className="btn btn-primary" disabled={Boolean(busy || imageBusy) || pending} onClick={() => void submit(true, true)}>{mode === "replace" ? "确认替换，保留旧目录学习记录" : "确认追加目录"}</button></div>}</>}
+    {entries.length > 0 && <><h3>目录层级预览</h3><ol className="wb-stack" style={{ gap: 4, listStyle: "none", padding: 0 }}>{entries.filter(e => e.selected).map((entry, i) => <li key={i} style={{ paddingLeft: Math.min(entry.path.split(" / ").length - 1, 5) * 12, overflowWrap: "anywhere" }}><span>{entry.path.split(" / ").at(-1)}</span><small className="wb-muted"> · {entry.page == null ? "页码待补" : `第 ${entry.page} 页`}</small></li>)}</ol><details><summary>校对标题、层级与页码</summary><p className="wb-small wb-muted">用“ / ”分隔章节层级，例如：第一章 / 第一节。重复的完整路径不会重复创建。</p>{entries.map((entry, i) => <div key={i} className="wb-stack"><label className="wb-choice"><input type="checkbox" checked={entry.selected} disabled={Boolean(busy)} onChange={e => { const next = entries.map((v, j) => j === i ? { ...v, selected: e.target.checked } : v); setEntries(next); retain(images, next); }} /><span>目录项 {i + 1}</span></label><label className="wb-field">章节路径<input value={entry.path} disabled={Boolean(busy)} onChange={e => { const next = entries.map((v, j) => j === i ? { ...v, path: e.target.value } : v); setEntries(next); retain(images, next); }} /></label><label className="wb-field">起始页码（可空）<input type="number" min="1" max="10000" value={entry.page ?? ""} disabled={Boolean(busy)} onChange={e => { const next = entries.map((v, j) => j === i ? { ...v, page: e.target.value ? Number(e.target.value) : null } : v); setEntries(next); retain(images, next); }} /></label></div>)}</details><button className="btn btn-primary" disabled={Boolean(requestBusy) || (job !== null && job.status !== "ready")} onClick={() => void submit(true)}>{requestBusy || "保存目录"}</button></>}
+    <dialog ref={confirmRef} className="kf-catalog-confirm" aria-labelledby={`${key}-confirm-title`} onCancel={e => { if (requestBusy) e.preventDefault(); else setPlan(null); }}>
+      {plan && <div className="wb-stack"><h2 id={`${key}-confirm-title`}>确认保存目录</h2><p>保存到《{book}》，共 {plan.total} 个节点。</p><p>新增 {plan.created}、复用 {plan.reused}、移入历史 {plan.archived} 个节点。历史错题和笔记关联会保留。</p><div className="wb-actions"><button className="btn btn-primary" disabled={Boolean(requestBusy)} onClick={() => void submit(true, true)}>{requestBusy || (mode === "replace" ? "确认替换，保留旧目录学习记录" : "确认追加目录")}</button><button className="btn btn-secondary" disabled={Boolean(requestBusy)} onClick={() => setPlan(null)}>返回校对</button></div>{message && <p role="alert" className="wb-notice">{message}</p>}</div>}
+    </dialog>
     {busy && <p role="status">{busy}</p>}{message && <p role="status" className="wb-notice">{message}</p>}
   </div>}</section>;
 }
