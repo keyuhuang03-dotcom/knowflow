@@ -107,7 +107,6 @@ body:has(.kf-business) {
   .kf-mobile-nav { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); position: fixed; inset: auto 12px max(10px,env(safe-area-inset-bottom,0px)); z-index: 60; padding: 6px; border: 1px solid #ffffffec; border-radius: 24px; background: #fffffff0; box-shadow: inset 0 1px 0 #fff, 0 5px 30px #43572c14; backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); }
   .kf-mobile-nav > a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 54px; border-radius: 17px; font-size: 11px; color: #7a8371; touch-action: manipulation; }
   .kf-mobile-nav > a[aria-current="page"] { color: #354a22; background: #eff5e5; font-weight: 600; }
-  .kf-mobile-nav > .kf-mobile-nav-capture { color: #415c22; background: #e5f3c9; }
   .kf-mobile-nav > a:active, .kf-mobile-capture:active, .kf-mobile-catalog:active { background-color: #dfedc5; }
   .kf-mobile-nav > a:focus-visible { outline: 2px solid #6d922f; outline-offset: 1px; }
 }
