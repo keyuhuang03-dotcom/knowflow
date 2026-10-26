@@ -40,17 +40,41 @@ async function main(){
    await p.getByRole('textbox',{name:'我的卡点（可选）',exact:true}).fill('不知道怎么求导');
    await p.getByRole('checkbox',{name:'忘记乘指数',exact:true}).check();
    await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).fill('漏写系数');
+   await p.getByRole('textbox',{name:'我的补充',exact:true}).fill('与错因一起保存');
+   await p.getByRole('button',{name:'保存补充',exact:true}).click();
+   await p.getByText('卡点、错因与补充已保存',{exact:true}).waitFor();
+   await p.reload();
+   assert.equal(await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).inputValue(),'漏写系数','保存补充 must also persist visible reflection');
    await p.getByRole('button',{name:'保存卡点与错因',exact:true}).click();
-   await p.getByText('已保存，不会重新调用 AI',{exact:true}).waitFor();
+   await p.getByText('卡点、错因与补充已保存',{exact:true}).waitFor();
+   await p.getByRole('button',{name:'重新做题',exact:true}).click();
+   await p.getByRole('button',{name:'结束练习，查看卡片',exact:true}).click();
+   assert.equal(await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).inputValue(),'漏写系数','练习切换 preserves saved reflection');
+   await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).fill('复习时补充的错因');
+   await p.getByRole('button',{name:'完成本次复习',exact:true}).click();
+   await p.getByText('卡点、错因与补充已保存',{exact:true}).waitFor();
+   await p.reload();
+   assert.equal(await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).inputValue(),'复习时补充的错因');
+   await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).fill('漏写系数');
+   await p.getByRole('button',{name:'保存卡点与错因',exact:true}).click();await p.getByText('卡点、错因与补充已保存',{exact:true}).waitFor();
    await p.reload();
    assert.equal(await p.getByRole('textbox',{name:'我的卡点（可选）',exact:true}).inputValue(),'不知道怎么求导');
    assert.equal(await p.getByRole('checkbox',{name:'忘记乘指数',exact:true}).isChecked(),true);
    assert.equal(await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).inputValue(),'漏写系数');
+   await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).fill('网络失败时保留草稿');
+   await p.route('**/api/mistakes/'+item.id, (route: { request(): { method(): string }; abort(): Promise<void>; continue(): Promise<void> })=>route.request().method()==='PATCH'?route.abort():route.continue());
+   await p.getByRole('button',{name:'保存补充',exact:true}).click();
+   await p.getByRole('button',{name:'保存补充',exact:true}).waitFor({state:'visible'});
+   await p.waitForFunction(()=>!Array.from(document.querySelectorAll('button')).find(b=>b.textContent==='保存补充')?.disabled);
+   assert.equal(await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).inputValue(),'网络失败时保留草稿');
+   await p.unroute('**/api/mistakes/'+item.id);
+   await p.getByRole('button',{name:'保存补充',exact:true}).click();await p.getByText('卡点、错因与补充已保存',{exact:true}).waitFor();
+   await p.reload();assert.equal(await p.getByRole('textbox',{name:'自填错因（可选）',exact:true}).inputValue(),'网络失败时保留草稿');
    assert.equal(await db.mistakeJob.count(),0);
    assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
    await p.screenshot({path:'/private/tmp/knowflow-review-mobile.png',fullPage:true});
    await p.setViewportSize({width:1440,height:900});assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await p.screenshot({path:'/private/tmp/knowflow-review-desktop.png',fullPage:true});assert.deepEqual(errors,[]);
-   console.log('PASS standard solution/math, unselected suggestions, reflection save/reload, no AI job, mobile/desktop overflow');
+   console.log('PASS reflection saved through all three buttons, practice toggle/reload, failed request retains draft and retry, no AI job; math and responsive layout');
   }finally{await browser.close();}
  }finally{server.kill('SIGTERM');await once(server,'exit');await db.$disconnect();}
 }

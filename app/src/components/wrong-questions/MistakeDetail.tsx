@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { Analysis, Candidate } from "@/lib/mistake-contract";
+import type { Analysis, Candidate, SelfReport } from "@/lib/mistake-contract";
 import AnalysisFields from "./AnalysisFields";
 import ProcessingStatus from "./ProcessingStatus";
 import MistakeReflection from "./MistakeReflection";
@@ -12,6 +12,7 @@ import ReviewCard from "./ReviewCard";
 type Item = { id: string; title: string; content: string; imageUrl: string | null; imageUrls: string[]; source: string | null; userWork: string | null; userWorkImageUrl: string | null; userNote: string | null; reviewStatus: string; reviewedAt: string | null; subjectId: string | null; processingStatus: string; skillRecordId: string | null; analysis: Analysis; nodes: Candidate[] };
 type SkillView = { summary: string; errors: { evidence: string; cause: string; repair: string; role: string }[]; formulas: { expression: string; conditions: string[]; why_here: string }[]; triggerConditions: string[]; correctReasoning: string[]; transferQuestions: string[]; mastery: { key: string; name: string; score: number | null }[]; diagnosisCard: string };
 export default function MistakeDetail({ item, candidates, skill, skillError }: { item: Item; candidates: Candidate[]; skill: SkillView | null; skillError: string }) {
+  const [reflection, setReflection] = useState<SelfReport>(item.analysis.selfReport || { stickingPoint: "", causes: [], customCause: "" });
   const [editing, setEditing] = useState(false);
   const [redo, setRedo] = useState(false);
   const [note, setNote] = useState(item.userNote || "");
@@ -39,9 +40,9 @@ export default function MistakeDetail({ item, candidates, skill, skillError }: {
     if (inFlight.current) return;
     inFlight.current = true; setBusy(true); setMessage("");
     try {
-      const response = await fetch(`/api/mistakes/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+      const response = await fetch(`/api/mistakes/${item.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...data, selfReport: reflection }) });
       const result = await response.json(); if (!response.ok) throw new Error(result.error);
-      setEditing(false); setMessage("已保存"); if (data.reviewStatus) setRedo(false); router.refresh();
+      setEditing(false); setMessage("卡点、错因与补充已保存"); if (data.reviewStatus) setRedo(false); router.refresh();
     } catch(e) { setMessage(e instanceof Error ? e.message : "保存失败，请重试"); } finally { inFlight.current = false; setBusy(false); }
   }
   return <div className="wb-page kf-mistake-detail"><Link className="wb-back" href={item.nodes[0] ? `/knowledge/nodes/${item.nodes[0].id}` : item.subjectId ? `/knowledge/${item.subjectId}` : "/wrong-questions"}>{item.nodes[0] ? "← 返回知识节点" : "← 返回我的错题"}</Link>
@@ -64,7 +65,7 @@ export default function MistakeDetail({ item, candidates, skill, skillError }: {
             <label className="wb-field">纠正或补充诊断<textarea rows={3} maxLength={4000} value={correction} onChange={e => setCorrection(e.target.value)} placeholder="写下真实补充，例如：我在第二步其实先约去了 x，不是不会公式。" /></label><button className="btn btn-secondary" disabled={busy || !correction.trim()} onClick={() => void runSkillAction("revise")}>提交纠正并重新诊断</button>
           </> : <p className="wb-error">{skillError || "Skill 诊断文件暂时无法读取，请检查数据目录。"}</p>}
       </details>}</ReviewCard>}
-      {!redo && !editing && <MistakeReflection key={item.id} id={item.id} analysis={item.analysis} />}
+      {!redo && !editing && <MistakeReflection analysis={item.analysis} value={reflection} onChange={value => { setReflection(value); setMessage(""); }} onSave={() => void save({ userNote: note, selfReport: reflection })} busy={busy} />}
       {editing && <><h3>关联知识点（可留空，最多 3 个）</h3>{item.skillRecordId && <p className="wb-muted wb-small">完整诊断已按这些教材节点归档；如需更正归属，请在右侧说明具体原因。</p>}<div className="wb-candidate-list">{candidates.map(n => <label className="wb-choice" key={n.id}><input type="checkbox" disabled={Boolean(item.skillRecordId)} checked={nodeIds.includes(n.id)} onChange={() => { if (nodeIds.includes(n.id)) setNodeIds(nodeIds.filter(id => id !== n.id)); else if (nodeIds.length < 3) setNodeIds([...nodeIds, n.id]); else setMessage("最多关联三个知识点"); }} /><div>{n.name}<p className="wb-muted wb-small">{n.path}</p></div></label>)}</div><button className="btn btn-primary" disabled={busy || !title.trim()} onClick={() => save({ title, source, userWork: work, analysis, nodeIds, confirmed: true })}>确认关联并保存修改</button></>}
       {!redo && <><hr /><label className="wb-field">我的补充<textarea maxLength={12000} rows={4} value={note} onChange={e => setNote(e.target.value)} placeholder="写下自己的理解，或下次做题前的一句提醒。" /></label><div className="wb-actions"><button className="btn btn-secondary" disabled={busy} onClick={() => save({ userNote: note })}>保存补充</button>{!editing && <button className="btn btn-primary" disabled={busy} onClick={() => save({ userNote: note, reviewStatus: "mastered" })}>完成本次复习</button>}</div></>}
     </section></div><p role="status" className="wb-notice" hidden={!message}>{message}</p>

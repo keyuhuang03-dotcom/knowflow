@@ -109,6 +109,13 @@ async function main() {
     const reflectionEntered = once(events, "entered"); const reflectingWorker = worker(ai); await reflectionEntered;
     const selfReport = { stickingPoint: "换元后不会改上下限", causes: ["计算或符号错误"], customCause: "漏写负号" };
     assert.equal((await PATCH(request({ selfReport }), context(reflection.id))).status, 200);
+    assert.equal((await PATCH(request({ selfReport, userNote: "补充与错因一起保存", reviewStatus: "mastered" }), context(reflection.id))).status, 200);
+    const combined = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } });
+    assert.equal(combined.userNote, "补充与错因一起保存");
+    assert.equal(combined.reviewStatus, "mastered");
+    assert.deepEqual(JSON.parse(combined.aiAnalysis!).selfReport, selfReport);
+    assert.equal((await PATCH(request({ selfReport: { ...selfReport, causes: [123] }, userNote: "不能部分保存" }), context(reflection.id))).status, 400);
+    assert.equal((await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } })).userNote, "补充与错因一起保存");
     const during = await prisma.mistakeItem.findUniqueOrThrow({ where: { id: reflection.id } });
     assert.equal(during.inputVersion, 0, "reflection does not cancel or restart processing");
     mode = "clear"; release(); await reflectingWorker.exited;

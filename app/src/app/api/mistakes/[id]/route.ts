@@ -16,17 +16,7 @@ async function PATCHHandler(req: Request, { params }: Context) {
     const body = record(await req.json());
     const item = await prisma.mistakeItem.findUnique({ where: { id } });
     if (!item) return NextResponse.json({ error: "错题不存在" }, { status: 404 });
-    if (body.selfReport !== undefined) {
-      if (Object.keys(body).some(key => key !== "selfReport")) throw new InputError("请单独保存卡点与错因");
-      const selfReport = parseSelfReport(body.selfReport);
-      const updated = await prisma.$transaction(async tx => {
-        const current = await tx.mistakeItem.findUniqueOrThrow({ where: { id } });
-        let existing: Record<string, unknown> = {};
-        try { existing = record(JSON.parse(current.aiAnalysis || "{}")); } catch { existing = { reviewTip: current.aiAnalysis || "" }; }
-        return tx.mistakeItem.update({ where: { id }, data: { aiAnalysis: JSON.stringify({ ...existing, selfReport }) }, include: mistakeInclude });
-      });
-      return NextResponse.json(updated);
-    }
+    const selfReport = body.selfReport === undefined ? undefined : parseSelfReport(body.selfReport);
     if (item.skillRecordId && body.userWork !== undefined && text(body.userWork, "解题过程") !== (item.userWork || "")) throw new InputError("完整诊断已归档；请使用诊断修订补充解题过程，原始作答不可覆盖");
     const reviewStatus = body.reviewStatus === undefined ? undefined : text(body.reviewStatus, "复习状态", 30);
     if (reviewStatus && !["pending", "reviewing", "mastered"].includes(reviewStatus)) throw new InputError("复习状态不正确");
@@ -59,6 +49,12 @@ async function PATCHHandler(req: Request, { params }: Context) {
       await tx.mistakeJob.updateMany({ where: { mistakeId: id }, data: { status: "cancelled", owner: null, leaseUntil: null } });
       if (reanalyze && !item.skillRecordId) await enqueueMistake(tx, id, version);
     }
+    let savedAnalysis: string | undefined;
+    if (analysis || selfReport) {
+      let existing: Record<string, unknown> = {};
+      try { existing = record(JSON.parse(current.aiAnalysis || "{}")); } catch { existing = { reviewTip: current.aiAnalysis || "" }; }
+      savedAnalysis = JSON.stringify({ ...(analysis ? preserveSelfReport(analysis, current.aiAnalysis) : existing), ...(selfReport ? { selfReport } : {}) });
+    }
     const saved = await tx.mistakeItem.update({ where: { id }, data: {
       inputVersion: version, subjectId,
       ...(changesInput ? { processingStatus: reanalyze && !item.skillRecordId ? "queued" : "complete", processingError: null } : {}),
@@ -68,7 +64,7 @@ async function PATCHHandler(req: Request, { params }: Context) {
       title: body.title === undefined ? undefined : text(body.title, "题目名称", 180, true),
       source: body.source === undefined ? undefined : text(body.source, "来源", 500),
       userWork: body.userWork === undefined ? undefined : text(body.userWork, "解题过程"),
-      aiAnalysis: analysis ? JSON.stringify(preserveSelfReport(analysis, current.aiAnalysis)) : undefined,
+      aiAnalysis: savedAnalysis,
       content: analysis ? analysis.question || "见原题图片" : undefined,
       errorReason: analysis?.errorReason,
       linksConfirmed: ids ? true : undefined,
