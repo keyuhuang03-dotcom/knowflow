@@ -1,76 +1,50 @@
-# 考研工作台 · Kaoyan Workbench
+# 本地开发与验证
 
-AI 驱动的个人考研学习工作台，包含任务管理、知识图谱、错题管理、学习记录、每日复盘、笔记和数据分析。
+先读 [项目现状](current-status.md)、[功能说明](features.md)、[架构](architecture.md) 和 `app/AGENTS.md`。修改 Next.js 代码前按 AGENTS 读取当前安装版本的相关指南。
 
-## 产品资料
+## Git 基线
 
-- [资料索引](README.md)
-- [Markdown 主 PRD](prd/PRD.md)：持续维护的需求文档，待决策内容以 TODO 标记。
-- [Word PRD 及各版本](prd/)
-- [三张原型图](prototypes/)
+唯一目标仓库为私有 MVP。origin 已指向 `keyuhuang03-dotcom/kaoyan-workbench-mvp`，main 跟踪 origin/main。旧仓库以 legacy 保留且禁止推送；过去临时同步工作树的失效登记已清理。
 
-## 目录结构
-
-```text
-app/src/app/          页面及 API 路由
-app/src/components/   业务组件
-app/src/lib/          数据库、AI 及公共逻辑
-app/prisma/           数据模型、迁移及初始化脚本
-app/public/           应用运行时使用的静态资源和 PWA 图标
-assets/           图标原稿、旧版图标和模板素材
-tools/debug/      独立调试页面
-docs/            PRD、原型图和资料索引
+```sh
+git status --short
+git remote -v
+git branch -vv
 ```
 
-## 本地开发
+工作区有别人修改时先检查，不直接 reset/clean 或覆盖。新功能使用 codex/ 前缀分支，避免改错仓库。代码、GitHub 和服务器版本分别核对；仅文档提交领先线上并不代表漏部署。
 
-技术栈：Next.js 16、React 19、TypeScript、Tailwind CSS 4、Prisma 6、SQLite；AI 功能使用 DeepSeek。
+## 环境
 
-需要 Node.js 20.9 或更新版本。以下操作在应用目录 `app/` 中执行。现有本地环境和数据库已随应用一起移动，无需重新初始化。
+Node.js 22、npm。Python 3 及 `app/vendor/mistake-learning/requirements.txt` 供历史 Skill 文档功能使用。构建/部署另需现有 Colima/Docker；普通本地 Web 开发不要求启动 Docker。
 
-```bash
+首次新建开发环境：
+
+```sh
 cd app
-cp .env.example .env
+test -f .env || cp .env.example .env
 npm ci
 test -e prisma/dev.db || touch prisma/dev.db
 npx prisma migrate deploy
-```
-
-文本 AI 使用 `DEEPSEEK_API_KEY`；图片分析需单独配置 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`。首次创建的空数据库可运行以下命令生成初始用户、科目和知识点：
-
-```bash
 npm run db:bootstrap
-```
-
-安全初始化仅补默认用户和四个科目，不覆盖已有数据。旧 `prisma/seed.ts` 会清空学习数据，不用于日常开发与更新。
-
-```bash
-npm run auth:configure  # 配置单人登录，密码不回显
+npm run auth:configure
 npm run dev
-# 另开终端，在 app/ 运行：
-npm run worker
 ```
 
-打开 <http://localhost:3000>。
+已有 .env、数据库或自定义路径时不要覆盖/重建。安全 bootstrap 仅补默认用户和四科；旧演示 seed 会清数据，不用于更新。另开终端在 app/ 执行 `npm run worker`。
 
-## 常用命令
+访问 http://localhost:3000；可信来源、账号和会话配置按本地环境设置。局域网手机地址和正式 APP_ORIGIN 不混用。本地与云端数据库不是实时同步关系，生产是正式学习数据源。
 
-```bash
-npm run lint     # 静态检查
-npm run build    # 生成 Prisma 客户端并构建应用
-npm start        # 运行构建后的应用
-```
+文本 AI 配置与图片模型分开，图片使用 MISTAKE_AI_* 三项。不要打印密钥，不把真实环境文件、上传或 Skill 个人记录纳入 Git。
 
-## 本地文件
+## 检查
 
-`.env`、SQLite 数据库、用户上传内容、依赖和构建缓存均不纳入 Git。迁移脚本保留在仓库中，用于重建数据库结构。
+在 app/ 执行 `npm run lint`、`npm run typecheck`、`npm test`、`npm run build -- --webpack`，按修改风险选择适用检查。浏览器写测试只能用显式隔离数据库和上传目录；现有 app/tests 脚本提供案例，不能对生产写样本。
 
-## 从仓库根目录运行
+手机布局检查 375/390/430px，并对照桌面；目录、图片、保存与后台任务变更检查刷新/离页/失败/重试和历史数据。真实模型、Safari 真机、生产恢复分别记录，不能用模拟成功代替。
 
-```bash
-npm --prefix app run dev
-npm --prefix app run lint
-npm --prefix app run build
-```
+## 本地实验
 
-部署平台的项目根目录需要设置为 `app`，再使用原有的安装、构建和启动命令。
+`tools/limit-graph-demo/` 若存在，是不连接 KnowFlow 数据的本机图谱比较样板，含本机专用字体，已忽略，不随正式仓库和镜像发布。它的演示关系和进度不代表正式功能或用户学习数据。需要正式接入时另做授权资产替换和业务验收。
+
+发布流程见 [部署文档](aliyun-deployment.md)；不能在 2GiB 服务器上重新构建完整应用。

@@ -1,3 +1,5 @@
+> 历史归档：本文件保留当时实现与验收过程，不代表当前部署、备案、Docker 或 Git 状态。当前信息见 [项目现状](../../current-status.md)。
+
 # KnowFlow Liquid Glass 视觉实验
 
 入口：本地开发服务运行时访问 `http://127.0.0.1:3000/design-lab`。

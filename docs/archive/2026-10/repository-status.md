@@ -1,3 +1,5 @@
+> 历史归档：本文件保留当时实现与验收过程，不代表当前部署、备案、Docker 或 Git 状态。当前信息见 [项目现状](../../current-status.md)。
+
 # MVP 仓库整理记录（2026-10-12）
 
 目标为私有仓库 `keyuhuang03-dotcom/kaoyan-workbench-mvp`，保留原有 main 历史，以当前本地代码快照增量更新。不修改原仓库 origin，不覆盖个人运行数据。

@@ -82,3 +82,6 @@ __pycache__/
 
 
 .knowflow-maintenance.lock
+
+# Local-only graph comparison experiment; bundled system font is not distributable.
+/tools/limit-graph-demo/

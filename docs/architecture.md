@@ -1,32 +1,40 @@
-# KnowFlow MVP 架构
+# KnowFlow 当前架构
 
-## 运行边界
+当前运行状态见 [项目现状](current-status.md)。历史实现记录见 [归档](archive/README.md)，不要再将“未部署”作为架构现状。
 
-Next.js 16 App Router + React 19 + TypeScript；Prisma 6 访问 SQLite。Web 和独立 Node Worker 共用数据库与上传目录。SQLite 内 `MistakeJob` 持久队列、`WorkerLease` 单 Worker 租约，无 Redis 或外部任务基础设施。
+## 运行结构
 
-## 核心流程与代码
+Next.js 16.4 / React 19 / TypeScript；Prisma 6 访问 SQLite。Web 与独立 Node Worker 共用持久数据库、照片和 Skill 目录，Docker Compose 部署，Caddy 提供 HTTPS 和反向代理。没有 Redis，也不采用无持久盘的纯 Serverless。
 
-| 流程 | 主要入口 |
+浏览器上传 → Web 校验并保存照片/错题/任务 → SQLite 持久队列 → Worker 识别与解答 → 保存结果 → 浏览器查询状态、用户校对与确认。
+
+## 关键边界
+
+- 上传成功才表示服务器记录持久化；浏览器负责状态查询，不负责后台执行。
+- MistakeJob、CatalogJob 与 WorkerLease 负责租约、有限重试和恢复；inputVersion 防止旧结果覆盖新输入。
+- 题干识别与标准解答分开。AI 不推断用户实际错因，selfReport 属于用户，后台与校对必须合并保留最新值。
+- 目录后台按页保存进度，ready 仅表示预览完成；用户确认导入后才是 saved。
+- 数学/408 分区教材独立；替换目录保留旧节点和历史内容，归档节点不当作当前教材目录推荐。
+- 个人复盘、补充及复习状态在统一保存入口事务写入，不重新调用 AI。
+
+## 代码入口
+
+| 流程 | 文件/目录 |
 | --- | --- |
-| 手机多页、旋转裁剪、压缩、IndexedDB草稿 | `MultiImageIntake.tsx`、`mistake-image.ts` |
-| 上传校验及留图、一次记录与任务、幂等 | `/api/upload`、`mistake-service.ts`、`mistake-pages.ts` |
-| 租约领取、有限重试、重启恢复、版本保护 | `mistake-queue.ts`、`scripts/mistake-worker.ts` |
-| 题干/手写识别，再生成卡片与已有节点推荐 | `mistake-ai.ts`、`mistake-recognition.ts`、`mistake-contract.ts` |
-| 状态回看、原图、公式及可编辑复习卡片 | `ProcessingStatus.tsx`、`MistakeDetail.tsx`、`ReviewCard.tsx`、`MathText.tsx` |
-| 教材名称、照片目录预览与确认追加 | `/api/subjects/[id]/catalog`、`textbook-catalog.ts` |
-| 完整诊断、上下文和 Word 导出 | `mistake-skill.ts`、`vendor/mistake-learning` |
-| 历史及多关联备份恢复 | `/api/backup`、`scripts/export-cloud-data.py` |
+| 多页、压缩、草稿、拖边裁剪 | `app/src/components/wrong-questions/MultiImageIntake.tsx`、`app/src/lib/mistake-image.ts` |
+| 上传与持久任务 | `/api/upload`、`mistake-service.ts`、`mistake-queue.ts` |
+| Worker | `app/scripts/mistake-worker.ts` |
+| 识别、解答与契约 | `app/src/lib/mistake-ai.ts`、`mistake-recognition.ts`、`mistake-contract.ts` |
+| 卡片、公式与自填错因 | `MistakeDetail.tsx`、`MistakeReflection.tsx`、`ReviewCard.tsx`、`MathText.tsx` |
+| 教材目录 | `CatalogPhotoImport.tsx`、`catalog-ai.ts`、`catalog-queue.ts`、`textbook-catalog.ts`、`/api/subjects/[id]/catalog` |
+| 手机最近状态 | `MobileIntakes.tsx`、`recent-intakes.ts`、`/api/recent-intakes` |
+| 登录与资源保护 | `auth.ts`、`request-guard.ts`、`release-controls.ts` |
+| 数据与迁移 | `app/prisma/schema.prisma`、`app/prisma/migrations` |
 
-上传成功指照片、错题和任务均持久化；浏览器只查询状态，不承担后台任务。AI 失败不会删除原图。识别不清、多道题或证据不足阻止确定性诊断；个人错因保持未确认，允许简短补充与事后修改。现有关联数量受接口校验限制，以实际代码为准，不能视作任意数量的自动关联已完成。
+组件简名位于对应业务组件目录，服务简名位于 `app/src/lib/`；完整定位表见交接文档。
 
-## 数据模型
+## 数据与安全
 
-`Subject` 管理主教材；`KnowledgeNode.parentId` 构成章节树，`KnowledgeNodeRelation` 存横向关系。`MistakeItem` 保存分析及状态，旧 `knowledgeNodeId`/`imageUrl` 保留兼容，多知识点通过 `MistakeNodes` 多对多关系，有序多页通过可空 JSON `imageUrls`。`MistakeJob` 记录任务及重试，版本字段避免后台旧结果覆盖人工修改。笔记、任务、学习记录沿用现有模型，完整字段见 `app/prisma/schema.prisma`。
+Subject / Chapter / KnowledgeNode 管理教材和树，KnowledgeNodeRelation 管理关系；MistakeItem 保存错题，多页以有序 imageUrls 表示，多知识点关系保留兼容。其他模型包括 Note、StudySession、Task、DailyReview、Resource、AiUsageDay。图片文件不存数据库二进制。部分分析与用户复盘使用结构化 JSON，仍须按契约校验。
 
-目前部分 AI/Skill 结果是结构化 JSON 字符串，未引入新存储服务。图片及 Skill 原始记录落本地持久目录，数据库不保存图片二进制。Web 与 Worker 的 `DATABASE_URL`、`UPLOAD_ROOT`、Skill 数据路径必须一致。
-
-## 部署和限制
-
-Docker/Compose 复用同一应用镜像，Web 启动前迁移、Worker 独立运行，Caddy 提供 HTTPS 与基本访问保护。代码模板已提供，实际 Docker/服务器运行及手机 Safari 需独立验收。新增迁移遵循备份→副本测试→旧数据比较→停写迁移→启动验收。
-
-当前是单人持久磁盘部署，不适合无持久磁盘的纯 Serverless、多实例写同一远程 SQLite 或公开多租户。图谱重设计、Obsidian 导出、双向同步不在当前实现内。Skill 来源随项目纳入用于本私有项目，未发现可授权对外再分发的许可证明；不擅自为第三方代码添加开源许可。
+页面、API、照片和导出通过应用身份校验；来源、请求体、并发、超时和 AI 次数都有边界。当前是单人应用，没有公开多租户数据隔离。真实 AI 正确率、安全审计和灾备演练不能由模拟测试代替。

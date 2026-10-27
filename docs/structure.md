@@ -1,38 +1,25 @@
-# 文件分类说明
+# 项目目录与放置规则
 
-| 目录 | 存放内容 |
+| 目录 | 内容 |
 | --- | --- |
-| `docs/prd/` | 主 PRD 的 Markdown 和基础 Word 文档 |
-| `docs/prd/versions/` | Word 格式整理版及作品集版本 |
-| `docs/prototypes/` | 知识库、数学、极限三张原型图 |
-| `assets/icons/source/` | 原根目录中的图标素材 |
-| `assets/icons/legacy/` | 当前代码未引用的旧版图标 |
-| `assets/template/` | 当前代码未引用的 Next.js 模板图片 |
-| `tools/debug/` | 手工排查问题使用的独立 HTML 页面 |
-| `app/src/app/` | 页面、布局和 API 路由 |
-| `app/src/components/` | 按业务分类的组件 |
-| `app/src/lib/` | 公共逻辑、AI 和数据库客户端 |
-| `app/prisma/` | 数据模型、迁移、初始化脚本及本地数据库 |
-| `app/public/` | 应用实际使用的公开静态资源 |
+| app/src/app | 页面、布局与 API；运行时公开路由 |
+| app/src/components | 业务组件、共享公式/图片/玻璃组件 |
+| app/src/lib | AI、队列、图片、数据库、认证与保护 |
+| app/prisma | 数据模型与增量迁移；演示 seed 不用于更新 |
+| app/scripts | Worker、启动、配置与健康检查 |
+| app/public | 实际运行的公开静态资源 |
+| app/vendor/mistake-learning | 历史 Skill 兼容代码、模板与依赖 |
+| app/tests | 单元、隔离集成和浏览器脚本 |
+| deploy、compose.yaml | 配置模板、容器与定时备份服务 |
+| scripts | 完整备份、校验、下载、恢复及维护工具 |
+| docs | 当前说明、PRD、原型和发布记录 |
+| docs/archive | 不再作为当前现状的旧过程文档 |
+| assets | 图标原稿、旧图标及模板素材 |
+| tools/debug | 独立调试材料 |
+| data | 本机私有数据、备份、发布产物与截图，Git 忽略 |
 
-## 顶层分类
+Git 根目录在项目最外层，目标 origin 为 MVP 私有仓库。npm/Next 配置在 app；生产 Docker 构建上下文是项目根，不能照搬一般平台的“Root Directory=app”配置。
 
-根目录包含 README、协作流程、Compose 与以下目录：
+新功能说明维护到 features.md；当前部署/仓库结论维护到 current-status.md；操作说明维护到 development/aliyun-deployment。阶段记录保留日期或移入 archive。Word 原稿和原型不因为维护 Markdown 就被删除。
 
-```text
-app/       完整应用：代码、配置、依赖、数据库和运行资源
-assets/    设计素材、旧图标和模板图片
-docs/      需求文档、原型图、开发说明
-tools/    调试工具
-```
-
-Next.js、TypeScript、npm 的配置文件与代码一起放入 `app/`，这里是新的应用根目录。Git 仓库及忽略规则仍位于最外层隐藏文件中。
-
-开发方法见 [开发说明](development.md)。在仓库根目录使用 `npm --prefix app run dev`，或进入 `app/` 后执行 `npm run dev`。部署平台的 Root Directory 需设为 `app`。
-
-## 后续文件放置规则
-
-- 新原型图放入 `docs/prototypes/`。
-- 主需求内容在 `docs/prd/PRD.md` 中维护；额外导出版本放入 `docs/prd/versions/`。
-- 非运行时的设计素材放入 `assets/`；需要通过网站地址访问的资源放入 `app/public/`。
-- 临时验证页面放入 `tools/debug/`。原 `/test.html` 已移出公开目录，可直接用浏览器打开本地 HTML 文件。
+真实 .env、deploy/app.env、实际 Caddyfile、数据库与 WAL、上传和 Skill 个人记录不提交。tools/limit-graph-demo 若存在是本机专用实验，已忽略，正式接入前需替换不可分发字体并另行验收。
