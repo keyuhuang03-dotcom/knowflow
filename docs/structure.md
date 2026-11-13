@@ -22,4 +22,21 @@ Git 根目录在项目最外层，目标 origin 为 MVP 私有仓库。npm/Next 
 
 新功能说明维护到 features.md；当前部署/仓库结论维护到 current-status.md；操作说明维护到 development/aliyun-deployment。阶段记录保留日期或移入 archive。Word 原稿和原型不因为维护 Markdown 就被删除。
 
-真实 .env、deploy/app.env、实际 Caddyfile、数据库与 WAL、上传和 Skill 个人记录不提交。tools/limit-graph-demo 若存在是本机专用实验，已忽略，正式接入前需替换不可分发字体并另行验收。
+真实 .env、deploy/app.env、实际 Caddyfile、数据库与 WAL、上传和 Skill 个人记录不提交。tools/limit-graph-demo 若存在是本机专用实验，已忽略，该样板不能直接发布；当前 app 内 Reagraph 实现独立维护，样板资产不可据此视为已获分发许可。
+
+## 当前分支补充与整理结果（2026-11-13）
+
+| 位置 | 职责与放置原则 |
+| --- | --- |
+| app/content/math1-limits | 受版本管理的内置参考包；不是个人 MD 存储目录 |
+| app/src/lib/pilot、components/pilot | MD 文件基础、索引、数学工作台与 Reagraph；保留现有命名，暂不迁移导入路径 |
+| app/src/lib/materials、components/materials | 笔记/练习资料识别、确认与界面；LegacyNotes 兼容旧页 |
+| app/src/app/api/materials、practice、notes | 页面和接口薄入口，业务规则继续放 lib |
+| app/scripts/pilot*、material-worker.ts | 试点初始化、备份、状态导出与后台运行；不要放到根运维 scripts |
+| docs/prd | 当前 Markdown 需求、待验证问题草稿、历史 Word 原稿；各自标明身份 |
+| docs/archive/2026-10 | 日期迭代记录、旧现状、旧路线图、旧 PRD；不指导当前操作 |
+| data/pilot、data/material-review | 个人试点数据与隔离测试证据；均不进入 Git |
+
+本次实际移动了 6 份日期迭代记录到 archive；旧版 PRD、路线图、现状全文另存历史快照。当前维护入口留在 docs 顶层，避免额外增加目录层级。日期交接文档保留原路径并明确历史身份，避免既有交接链接失效。
+
+不整理 app 为新架构，不搬动 SQLite、vault、uploads、vendor 或 tools 演示目录；运行路径、字体许可和历史数据关联不能靠文件搬家解决。未来只有模块出现明确维护问题时才重命名 pilot 或拆服务，不以目录整齐为理由批量迁移。

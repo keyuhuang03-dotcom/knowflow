@@ -1,50 +1,75 @@
-# 本地开发与验证
+# 开发、启动与验证
 
-先读 [项目现状](current-status.md)、[功能说明](features.md)、[架构](architecture.md) 和 `app/AGENTS.md`。修改 Next.js 代码前按 AGENTS 读取当前安装版本的相关指南。
+先读 [功能说明](features.md)、[架构](architecture.md) 和 `app/AGENTS.md`。修改 Next.js 代码前读取当前安装版本的相关指南。这里解释运行方式，不用 Git 分支定义产品功能。
 
-## Git 基线
+## 1. 选择运行环境
 
-唯一目标仓库为私有 MVP。origin 已指向 `keyuhuang03-dotcom/kaoyan-workbench-mvp`，main 跟踪 origin/main。旧仓库以 legacy 保留且禁止推送；过去临时同步工作树的失效登记已清理。
+| 目的 | Web / Worker | 数据与能力 |
+| --- | --- | --- |
+| 使用当前图谱、MD、笔记及练习 | `npm run pilot:dev` / `npm run pilot:worker` | 默认 data/pilot；服务会检查隔离路径 |
+| 只处理笔记/练习后台 | Web 同上 / `npm run pilot:materials-worker` | 不消费原错题/目录队列，不能替代完整后台处理全部任务 |
+| 维护原有功能环境 | `npm run dev` / `npm run worker` | 使用原配置；不自动启用所有新内容服务 |
+
+所有 npm 命令在 `app/` 执行。完整功能默认地址 http://127.0.0.1:4321 ，原开发方式通常 http://localhost:3000 。端口是配置，不保证进程一直运行。
+
+## 2. 依赖与配置
+
+- Node.js 22、npm；按 lockfile 使用 `npm ci` 安装依赖，已有环境操作前先了解运行进程。
+- Python 3 用于当前内容锁/备份及历史 Skill 工具；历史导出还需 `app/vendor/mistake-learning/requirements.txt`。
+- PDF 识别需 Worker 的 PATH 中可执行 `pdfinfo`、`pdftoppm`（Poppler）；npm 安装不包含这些工具。
+- 图像 AI 使用 `MISTAKE_AI_API_KEY`、`MISTAKE_AI_BASE_URL`、`MISTAKE_AI_MODEL`。文本模型配置不能替代图片能力。不要打印密钥。
+- 登录、来源和签名按现有 `.env` 配置；不要覆盖旧文件。仅首次全新环境才复制 `.env.example` 并完成本地认证配置。
+
+## 3. 当前完整功能的首次初始化
+
+先选择一个不含正式学习数据的新绝对目录。各终端使用相同的 PILOT_DATA_ROOT、PILOT_ORIGIN；并行 Web 使用不同的 PILOT_NEXT_DIR。
 
 ```sh
-git status --short
-git remote -v
-git branch -vv
+# 在 app/，以下以独立测试环境为例；各终端保持相同配置
+export PILOT_DATA_ROOT=/absolute/knowflow-test-data
+export PILOT_ORIGIN=http://127.0.0.1:4323
+export PILOT_NEXT_DIR=.next-pilot-test
+npm run pilot:init
 ```
 
-工作区有别人修改时先检查，不直接 reset/clean 或覆盖。新功能使用 codex/ 前缀分支，避免改错仓库。代码、GitHub 和服务器版本分别核对；仅文档提交领先线上并不代表漏部署。
+路径为示例，执行前换成实际新目录。`pilot:init` 会创建/迁移数据库、装入知识包并更新索引，是写入命令；不能指向生产目录。遇已变化的知识包文件会拒绝覆盖。初始化不导入旧个人学习数据。
 
-## 环境
-
-Node.js 22、npm。Python 3 及 `app/vendor/mistake-learning/requirements.txt` 供历史 Skill 文档功能使用。构建/部署另需现有 Colima/Docker；普通本地 Web 开发不要求启动 Docker。
-
-首次新建开发环境：
+然后分别启动 Web 与完整 Worker：
 
 ```sh
-cd app
-test -f .env || cp .env.example .env
-npm ci
-test -e prisma/dev.db || touch prisma/dev.db
-npx prisma migrate deploy
-npm run db:bootstrap
-npm run auth:configure
-npm run dev
+npm run pilot:dev
+# 另一终端，保持相同环境变量
+npm run pilot:worker
 ```
 
-已有 .env、数据库或自定义路径时不要覆盖/重建。安全 bootstrap 仅补默认用户和四科；旧演示 seed 会清数据，不用于更新。另开终端在 app/ 执行 `npm run worker`。
+默认不设置上述变量时使用仓库 `data/pilot/`、4321 和 `.next-pilot`。启动脚本设置 KNOWFLOW_PILOT、DATABASE_URL、UPLOAD_ROOT 等；内容服务再次检查对应路径。
 
-访问 http://localhost:3000；可信来源、账号和会话配置按本地环境设置。局域网手机地址和正式 APP_ORIGIN 不混用。本地与云端数据库不是实时同步关系，生产是正式学习数据源。
+## 4. 已有环境与增量升级
 
-文本 AI 配置与图片模型分开，图片使用 MISTAKE_AI_* 三项。不要打印密钥，不把真实环境文件、上传或 Skill 个人记录纳入 Git。
+已有完整环境日常使用只启动 Web/Worker，不重复初始化。升级前先按 [内容恢复说明](pilot-md-limit.md) 备份并核对迁移；必要时在副本应用增量迁移，检查正文/附件/状态/关联。`pilot:init` 不只是迁移命令，还会检查知识包；不能为绕过报错覆盖内容。
 
-## 检查
+维护原方式时只在首次新库执行迁移、`npm run db:bootstrap` 与 `npm run auth:configure`；已有库不要重新 seed。普通开发数据与完整内容环境互不自动同步，旧数据未显示不等于已删除。
 
-在 app/ 执行 `npm run lint`、`npm run typecheck`、`npm test`、`npm run build -- --webpack`，按修改风险选择适用检查。浏览器写测试只能用显式隔离数据库和上传目录；现有 app/tests 脚本提供案例，不能对生产写样本。
+## 5. 检查与证据
 
-手机布局检查 375/390/430px，并对照桌面；目录、图片、保存与后台任务变更检查刷新/离页/失败/重试和历史数据。真实模型、Safari 真机、生产恢复分别记录，不能用模拟成功代替。
+按变更范围选择 `npm run lint`、`npm run typecheck`、`npm test`、`npm run build -- --webpack`；完整内容构建可用 `npm run pilot:build`。图谱浏览器检查入口为 `npm run pilot:test:browser`，执行前读取脚本并确认隔离路径及浏览器依赖。
 
-## 本地实验
+页面验收至少包含 1440/1024/390/430px，同数据/选中状态的前后截图。后台验收包含离页、失败重试、任务恢复；内容验收包含用户/AI 并发、版本冲突、反向链接及完整备份隔离恢复。
 
-`tools/limit-graph-demo/` 若存在，是不连接 KnowFlow 数据的本机图谱比较样板，含本机专用字体，已忽略，不随正式仓库和镜像发布。它的演示关系和进度不代表正式功能或用户学习数据。需要正式接入时另做授权资产替换和业务验收。
+生产学习数据不用于写入测试。模拟 AI、真实样本、桌面模拟手机、Safari 真机分别记录；不能用构建通过代替视觉/模型质量验证。
 
-发布流程见 [部署文档](aliyun-deployment.md)；不能在 2GiB 服务器上重新构建完整应用。
+## 6. 日常故障定位
+
+| 表现 | 先核对 |
+| --- | --- |
+| 127.0.0.1 拒绝连接 | Web 是否运行、端口和当前日志；不是先重建数据库 |
+| 页面可见但提示服务未启用 | 是否用完整功能启动脚本，数据库/附件路径是否一致 |
+| 上传后一直等待 | 对应 Worker 是否运行；仅资料 Worker 不处理照片错题队列 |
+| PDF 识别失败 | Poppler PATH、页数/体积、任务错误；保留原文件再重试 |
+| 笔记看不到历史内容 | 当前数据目录与旧笔记入口；不要直接覆盖/搬库 |
+
+## 7. 协作与发布
+
+工作前检查已有改动，保留他人工作；不使用 reset/clean、清库 seed 或无差别 add。具体规则见 [协作规范](../CONTRIBUTING.md)。本轮文档更新不涉及提交或发布。
+
+现有生产操作模板见 [部署说明](aliyun-deployment.md)，上线新内容能力前另核对启用配置、PDF 依赖、备份和恢复。工具样板、可分发资源与正式 app 代码分别维护；不要直接发布含本机字体的演示目录。

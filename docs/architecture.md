@@ -1,40 +1,62 @@
-# KnowFlow 当前架构
+# KnowFlow 系统与数据架构
 
-当前运行状态见 [项目现状](current-status.md)。历史实现记录见 [归档](archive/README.md)，不要再将“未部署”作为架构现状。
+更新：2026-11-13，按当前实现核对。产品规则见 [PRD](prd/PRD.md)，使用限制见 [功能说明](features.md)。
 
-## 运行结构
+## 运行组成
 
-Next.js 16.4 / React 19 / TypeScript；Prisma 6 访问 SQLite。Web 与独立 Node Worker 共用持久数据库、照片和 Skill 目录，Docker Compose 部署，Caddy 提供 HTTPS 和反向代理。没有 Redis，也不采用无持久盘的纯 Serverless。
+Next.js 16.4、React 19、TypeScript 提供页面和 API；Prisma 6 访问 SQLite；Node Worker 消费持久任务；正文和附件使用持久文件目录。现有部署模板使用 Docker Compose 与 Caddy，不采用无持久盘的纯 Serverless，也没有 Redis。
 
-浏览器上传 → Web 校验并保存照片/错题/任务 → SQLite 持久队列 → Worker 识别与解答 → 保存结果 → 浏览器查询状态、用户校对与确认。
+浏览器负责录入、校对和查询；Web 校验请求并保存来源与任务；Worker 在页面关闭后继续处理；用户确认后内容进入知识网络。AI 调用位于服务端，并受额度、超时与结果校验约束。
 
-## 关键边界
+## 正式来源与可重建范围
 
-- 上传成功才表示服务器记录持久化；浏览器负责状态查询，不负责后台执行。
-- MistakeJob、CatalogJob 与 WorkerLease 负责租约、有限重试和恢复；inputVersion 防止旧结果覆盖新输入。
-- 题干识别与标准解答分开。AI 不推断用户实际错因，selfReport 属于用户，后台与校对必须合并保留最新值。
-- 目录后台按页保存进度，ready 仅表示预览完成；用户确认导入后才是 saved。
-- 数学/408 分区教材独立；替换目录保留旧节点和历史内容，归档节点不当作当前教材目录推荐。
-- 个人复盘、补充及复习状态在统一保存入口事务写入，不重新调用 AI。
+| 数据 | 正式来源 | 恢复与职责 |
+| --- | --- | --- |
+| 内置参考包 | `app/content/math1-limits/`，初始化到内容库 | 包版本、来源、范围和校对状态随内容维护 |
+| 新知识点/笔记/错题正文 | vault 中独立 Markdown | 文件是正文来源，不与数据库双重独立编辑 |
+| 照片/PDF | vault/附件，旧内容保留原路径 | 文件不存数据库二进制；必须随备份保留 |
+| 内容元信息与链接索引 | ContentDocument、ContentLink | 从有效 MD 重建；重建遇重复 ID/断链不能静默接受 |
+| 学习进度/复习事件 | LearningProgress、ReviewEvent | 个人状态，不能靠正文推算；状态快照或完整备份恢复 |
+| 写入日志、AI 候选、任务与额度 | 对应 SQLite 运行表 | 不是可随意删除的搜索缓存；完整备份保留 |
+| 资料候选及已确认练习题集 | LearningMaterial | 笔记确认后候选仅作历史；练习题集当前以此为准 |
+| 练习作答 | PracticeAttempt | 完整备份包含；知识进度 JSON 暂不包含 |
+| 历史教材、笔记、错题、时长等 | 原有 SQLite 模型及文件 | 保持兼容访问，未批量迁移 |
 
-## 代码入口
+## 三条写入链路
 
-| 流程 | 文件/目录 |
+**错题：** 上传照片 → 保存 MistakeItem 与 MistakeJob → Worker 识别题干、生成解答 → 推荐已有知识点 → 用户校对与确认。新版正文写 MD，旧列表只保留必要运行/兼容索引；历史错题仍走旧路径。MistakeJob、WorkerLease、输入版本与检查点用于恢复及防止旧结果回写。
+
+**笔记：** 手工编辑或照片/PDF → LearningMaterial 持久候选 → 用户校对正文与关联 → 内容锁下写 MD 并更新索引。Worker 以租约和版本条件领取/提交，确认后不重新覆盖笔记正文。
+
+**练习：** 图片/PDF → LearningMaterial 识别候选 → 校对确认题集 → PracticeAttempt 记录作答 → 收入错题时生成独立 MD、来源引用与知识关联。不会把练习题集伪装成已实现的 MD 题库。
+
+教材目录使用 CatalogJob 的独立队列：ready 表示预览就绪，用户确认导入后才算保存，旧目录与关联保留。
+
+## 并发与正文保护
+
+MD 写入共享跨进程文件锁；ContentOperation 记录待完成操作，文件原子替换后更新索引，并在后续操作恢复中断写入。用户提交携带版本/哈希，重复操作通过稳定编号收敛；旧版本不能覆盖新正文。
+
+错题后台检查分析输入及目标区块；用户已修改题干、解答或标识不完整时保存候选，不自动逐句合并。用户标题、卡点、错因和确认关联不属于可任意覆盖区域。具体区块与冲突规则见 [内容说明](pilot-md-limit.md)。
+
+## 模块定位
+
+| 职责 | 代码位置 |
 | --- | --- |
-| 多页、压缩、草稿、拖边裁剪 | `app/src/components/wrong-questions/MultiImageIntake.tsx`、`app/src/lib/mistake-image.ts` |
-| 上传与持久任务 | `/api/upload`、`mistake-service.ts`、`mistake-queue.ts` |
-| Worker | `app/scripts/mistake-worker.ts` |
-| 识别、解答与契约 | `app/src/lib/mistake-ai.ts`、`mistake-recognition.ts`、`mistake-contract.ts` |
-| 卡片、公式与自填错因 | `MistakeDetail.tsx`、`MistakeReflection.tsx`、`ReviewCard.tsx`、`MathText.tsx` |
-| 教材目录 | `CatalogPhotoImport.tsx`、`catalog-ai.ts`、`catalog-queue.ts`、`textbook-catalog.ts`、`/api/subjects/[id]/catalog` |
-| 手机最近状态 | `MobileIntakes.tsx`、`recent-intakes.ts`、`/api/recent-intakes` |
-| 登录与资源保护 | `auth.ts`、`request-guard.ts`、`release-controls.ts` |
-| 数据与迁移 | `app/prisma/schema.prisma`、`app/prisma/migrations` |
+| 导航与首页 | `app/src/components/knowledge/home/KnowledgeSidebar.tsx`、`app/src/app/page.tsx` |
+| 数学图谱、正文编辑 | `app/src/components/pilot/`、`app/src/lib/pilot/`、`app/src/app/api/pilot/` |
+| 照片错题、后台与识别 | `app/src/components/wrong-questions/`、`app/src/lib/mistake-*.ts` |
+| 笔记与练习 | `app/src/components/materials/`、`app/src/lib/materials/`、`app/src/app/api/materials/` |
+| 全队列 Worker／仅资料 Worker | `app/scripts/mistake-worker.ts`、`app/scripts/material-worker.ts` |
+| 认证、请求与额度保护 | `app/src/lib/auth.ts`、`request-guard.ts`、`release-controls.ts`（后两者同目录） |
+| 数据模型与迁移 | `app/prisma/schema.prisma`、`app/prisma/migrations/` |
+| 内容环境与恢复 | `app/scripts/pilot-env.ts`、`pilot.ts`、`pilot-snapshot.ts`、`pilot-backup.py`（同目录） |
 
-组件简名位于对应业务组件目录，服务简名位于 `app/src/lib/`；完整定位表见交接文档。
+现有 `pilot` 命名是代码与脚本名称；产品入口仍是网站知识库、笔记和练习，不需要另建一套导航。
 
-## 数据与安全
+## 运行隔离、备份与发布边界
 
-Subject / Chapter / KnowledgeNode 管理教材和树，KnowledgeNodeRelation 管理关系；MistakeItem 保存错题，多页以有序 imageUrls 表示，多知识点关系保留兼容。其他模型包括 Note、StudySession、Task、DailyReview、Resource、AiUsageDay。图片文件不存数据库二进制。部分分析与用户复盘使用结构化 JSON，仍须按契约校验。
+新内容服务检查 KNOWFLOW_PILOT、数据库与附件目录是否一致，错误配置拒绝写入。完整快照保存对应 SQLite 与 vault；恢复到新目录并校验，再决定切换。设置旧 JSON、知识状态 JSON 与完整快照的覆盖范围不同，不能互相替代。
 
-页面、API、照片和导出通过应用身份校验；来源、请求体、并发、超时和 AI 次数都有边界。当前是单人应用，没有公开多租户数据隔离。真实 AI 正确率、安全审计和灾备演练不能由模拟测试代替。
+PDF 转图片依赖 Poppler；MD 锁依赖当前 Python/OS 工具链。未来 App/跨平台实现需另行适配。新页面存在不等于普通启动即可调用其服务；发布前须核对启用策略、依赖、增量迁移和恢复，不靠文档修改改变代码行为。
+
+认证、资源访问和请求保护继续复用既有机制；单人应用不等于已具备多人数据隔离。操作说明见 [开发说明](development.md)。
