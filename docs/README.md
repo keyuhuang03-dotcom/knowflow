@@ -5,8 +5,8 @@
 | 文档 | 用途 |
 | --- | --- |
 | [本文](README.md) | 阅读入口 |
-| [产品需求](prd/PRD.md) | 用户场景、功能规则和验收标准 |
-| [项目现状](current-status.md) | 已知缺口、验证边界及下一步顺序 |
+| [产品需求与功能规则](prd/PRD.md) | 用户场景、功能规则和验收标准 |
+| [项目现状](current-status.md) | GitHub／本地／线上版本、已知缺口及下一步 |
 | [架构](architecture.md) | 模块、目录职责与数据正式来源 |
 | [开发说明](development.md) | 启动、依赖、故障定位和回归检查 |
 | [部署说明](aliyun-deployment.md) | 生产发布、备份与回滚 |
@@ -15,6 +15,6 @@
 
 另保留 [核心问题定义草稿](prd/KnowFlow-核心问题定义-待确认.md)，它承载待验证研究假设，不替代产品需求。
 
-本批未清理的资料：[历史归档](archive/README.md)、[Word 原稿](prd/PRD.docx)、[版本稿](prd/versions/)、[原型图片](prototypes/)、[CI 模板](ci/ci.yml)。它们各有历史或设计用途，不因文件存在就认定已实现、已启用或仍为当前要求。
+本批未清理的资料：[历史归档](archive/README.md)、[Word 原稿](prd/PRD.docx)、[历史 Word 用途索引](prd/versions/README.md)、[原型图片](prototypes/)、[CI 模板](ci/ci.yml)。它们各有历史或设计用途，不因文件存在就认定已实现、已启用或仍为当前要求。
 
 经审核删除的旧快照与重复说明可从 Git 历史追溯；不在目录中另造副本。私人学习内容、备份和验收截图继续放被忽略的 data，业务代码与数据未因文档精简搬动。

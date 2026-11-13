@@ -16,7 +16,7 @@
 
 | 想了解什么 | 文档 |
 | --- | --- |
-| 产品场景、流程、规则与验收 | [产品需求文档](docs/prd/PRD.md) |
+| 产品场景、流程、规则与验收 | [产品需求与功能规则](docs/prd/PRD.md) |
 | 已知缺口与验证边界 | [项目现状](docs/current-status.md) |
 | 如何启动、检查和配置后台 | [开发说明](docs/development.md) |
 | 正文、附件、状态与备份如何协作 | [架构](docs/architecture.md)、[内容与恢复](docs/content-storage.md) |
@@ -28,4 +28,4 @@
 
 首次初始化、旧环境启动、PDF 依赖及数据隔离请按 [开发说明](docs/development.md) 操作。普通 `npm run dev` 不会自动启用所有新内容服务。已有学习数据和配置不得覆盖。
 
-本页描述当前实现，不承诺所有能力已在正式站部署。业务代码在 `app/`，维护文档在 `docs/`；个人文件、数据库、备份及本机验收证据在被 Git 忽略的 `data/`。开发发布遵循 [协作规范](CONTRIBUTING.md)，不提交密钥和个人数据。
+本页概览包含本地开发工作区的新增实现，不能按本页推断 GitHub main 的代码已全部具备。各版本差异见 [版本核对表](docs/current-status.md)。业务代码在 `app/`，维护文档在 `docs/`；个人文件、数据库、备份及本机验收证据在被 Git 忽略的 `data/`。开发发布遵循 [协作规范](CONTRIBUTING.md)，不提交密钥和个人数据。
