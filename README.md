@@ -17,11 +17,10 @@
 | 想了解什么 | 文档 |
 | --- | --- |
 | 产品场景、流程、规则与验收 | [产品需求文档](docs/prd/PRD.md) |
-| 当前功能和使用限制 | [功能说明](docs/features.md) |
 | 已知缺口与验证边界 | [项目现状](docs/current-status.md) |
 | 如何启动、检查和配置后台 | [开发说明](docs/development.md) |
-| 正文、附件、状态与备份如何协作 | [架构](docs/architecture.md)、[内容与恢复](docs/pilot-md-limit.md) |
-| 其他资料 | [文档导航](docs/README.md)、[目录规则](docs/structure.md) |
+| 正文、附件、状态与备份如何协作 | [架构](docs/architecture.md)、[内容与恢复](docs/content-storage.md) |
+| 其他资料 | [文档导航](docs/README.md)、[模块与目录职责](docs/architecture.md) |
 
 ## 运行
 
