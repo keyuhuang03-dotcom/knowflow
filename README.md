@@ -23,7 +23,8 @@
 | 一期数据和模块职责 | [架构](docs/architecture.md) |
 | 开发运行与验收 | [开发说明](docs/development.md) |
 | 发布、备份与回滚 | [运维说明](docs/aliyun-deployment.md) |
-| 其他资料及历史 Word 地位 | [文档导航](docs/README.md) |
+| 八屏核心流程与可点击演示 | [一期原型](docs/prototypes/phase1/README.md) |
+| 其他资料及历史记录 | [文档导航](docs/README.md) |
 
 一期发布记录对应 `f8f761e`，用户确认仍为当前网站版本；实时服务器版本本轮未重新读到，详见现状页。不要在含未提交二期代码的本地工作区直接按一期说明启动并将结果认作一期。
 
