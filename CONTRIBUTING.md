@@ -1,12 +1,20 @@
-# 开发与发布流程
+# KnowFlow 参赛协作
 
-1. 阅读 README、项目现状、app/AGENTS.md 和相关代码，检查工作区。origin 必须为 MVP 私有仓库；旧 legacy 不用于推送。
-2. 从有效主分支建立小范围功能分支（Codex 使用 codex/ 前缀），复用现有组件。保留用户和其他会话改动，不能不加区分地 add/reset/clean。
-3. 数据变更前做一致性快照，在副本执行增量迁移并比较历史记录/关联；禁止 migrate reset 和演示 seed 更新已有数据。
-4. 运行适用的 lint、typecheck、测试和构建。测试写入只用隔离数据库/上传目录，生产浏览器验收默认只读。真实 AI、Safari 和恢复演练单列。
-5. 当前结论更新到 docs/current-status.md；功能规则写到 docs/prd/PRD.md，操作写到 deployment/development。历史过程只放 archive 或明确标注的日期记录，不再留下互相冲突的现状入口。
-6. 审查暂存文件，排除密钥、数据库/WAL、照片、备份和个人 Skill 数据；检查目标远程再提交/推送。自动 CI 是否启用以实际工作流为准，不以模板存在为证据。
-7. 业务发布由获授权维护者使用既有 Mac 构建、SSH、校验、备份和回滚流程执行；不要求用户重复上传，也不在小内存服务器构建。GitHub 推送和本地构建不等于上线。
-8. 仅文档/Git 配置整理无需重新部署。报告实际同步和上线状态、检查范围及未验证项；不把历史测试通过写成此次重跑。
+## 分支与 Issue
 
-详见 docs/development.md、docs/aliyun-deployment.md。主分支保留代码、迁移、锁文件和维护文档；真实数据与本机专用实验不混入正式提交。
+参赛仓库为 [knowflow](https://github.com/keyuhuang03-dotcom/knowflow)。开始前核对远端与工作区，阅读 [开发说明](docs/development.md) 和 [Agent 规则](AGENTS.md)。
+
+- `main` 保存稳定版本，`develop/competition` 用于参赛集成。两者的变更均通过 PR，禁止直接推送、强推和删除。
+- 先用 Issue 确认负责人、范围和验收条件，再从最新 `develop/competition` 创建短分支，如 `feat/android-foundation`、`feat/shared-api`、`fix/upload-retry` 或 `docs/api-contract`。Agent 可用 `codex/` 前缀。
+- 日常 PR 指向 `develop/competition`，验收后的阶段版本以发布 PR 晋级 `main`。日常 PR 优先 squash，晋级 PR 使用 merge commit 保留集成历史。
+- 在 PR 中用 `Refs #编号` 关联 Issue。另一位成员评审，CI 通过且讨论解决后合并；集成验收通过再关闭 Issue。超出范围先回到 Issue 对齐。
+
+## 提交与评审
+
+提交及日常 PR 标题用 Conventional Commits，格式为 `type(scope): summary`，scope 可省略。常用类型为 `feat`、`fix`、`docs`、`test`、`ci`、`refactor` 和 `chore`。例如 `fix(api): preserve upload retry id`。不兼容变更用 `!` 并说明迁移方式。每次提交仅覆盖一个目的。
+
+双方先确认 API、鉴权、错误、任务状态和公共类型，再并行实现。涉及数据库时由后端负责人协调增量迁移，在新库和脱敏旧库副本验证；保留已应用迁移，禁止对已有数据执行 reset 或演示 seed。PR 写明兼容性、验证结果及未测项。
+
+服务端检查运行迁移、lint、类型检查、测试和构建，使用隔离 SQLite、上传目录及空 AI 凭证。Android 工程入库后再加入构建检查。真实 AI、真机、Safari 与恢复演练单列。
+
+功能更新写入对应需求与开发文档。提交前排除密钥、私有配置、数据库/WAL、照片、备份和个人 Skill 数据。发布由获授权维护者按 [运维说明](docs/aliyun-deployment.md) 单独执行。
